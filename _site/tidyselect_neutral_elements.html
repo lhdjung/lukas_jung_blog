@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.269">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Lukas Jung’s blog - Writing functions with dplyr::across() and tidyselect</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Lukas Jung’s blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com"><i class="bi bi-twitter" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Writing functions with <code>dplyr::across()</code> and tidyselect</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>Some R functions like <code>dplyr::select()</code>, <code>dplyr::across()</code>, and <code>tidyr::pivot_longer()</code> use a special selection syntax. You may have seen <code>starts_with()</code> or <code>everything()</code> in a call to a function that selects columns:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr) <span class="sc">|&gt;</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">suppressPackageStartupMessages</span>()</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># For better printing:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>iris <span class="ot">&lt;-</span> iris <span class="sc">|&gt;</span> </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">starts_with</span>(<span class="st">"Sepal"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+  Sepal.Length Sepal.Width
+         &lt;dbl&gt;       &lt;dbl&gt;
+1          5.1         3.5
+2          4.9         3  
+3          4.7         3.2</code></pre>
+</div>
+</div>
+<p>Code like this relies on a framework called <a href="https://tidyselect.r-lib.org/index.html">tidyselect</a>. Knowing the basics of tidyselect is beneficial for R users in general because <code>select()</code> and <code>pivot_longer()</code> are among the language’s most popular functions.</p>
+<p>However, the framework is especially interesting for package developers. Plugging your functions into tidyselect will give them more power and flexibility, and it will better align them with the tidyverse. This will make them easier accessible for users who are familiar with the high-profile functions mentioned above.</p>
+<p>This blogpost is about programming with tidyselect. Although the framework allows you to implement your own <a href="https://tidyselect.r-lib.org/articles/tidyselect.html">low-level interfaces</a>, I will only discuss wrappers around existing functions that use tidyselect. I will focus on <code>dplyr::across()</code>, an amazingly powerful tool that applies functions to multiple columns in a data frame. The role of tidyselect is to control which columns are operated on.</p>
+<p>There is a <a href="https://dplyr.tidyverse.org/dev/articles/programming.html">nice dplyr vignette</a> that introduces programming with <code>across()</code>. Be sure to check it out first to get a sense of the function’s capabilities. Here, I will discuss a style of working with tidyselect that I haven’t seen anywhere else. I hope the framework’s developers will either approve of my ideas or not read the post.</p>
+<section id="attempt-1-unspecific-selection" class="level2">
+<h2 class="anchored" data-anchor-id="attempt-1-unspecific-selection">Attempt 1: unspecific selection</h2>
+<p>Let’s start with a simple example. Here is a function that multiplies all numeric columns in a data frame by some number:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>multiply_df <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">cols =</span> <span class="fu">where</span>(is.numeric), <span class="at">by =</span> <span class="dv">1000</span>) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(data, dplyr<span class="sc">::</span><span class="fu">across</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">.cols =</span> {{ cols }},</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">.fns  =</span> <span class="cf">function</span>(x) x <span class="sc">*</span> by</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">multiply_df</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+         &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;fct&gt;  
+1         5100        3500          1.4         0.2 setosa 
+2         4900        3000          1.4         0.2 setosa 
+3         4700        3200          1.3         0.2 setosa </code></pre>
+</div>
+</div>
+<p>By default, all numeric columns are selected. That’s reasonable because our function should only operate on numbers. The selection is defused and injected into the <code>across()</code> call using <code>{{ }}</code>. It uses a <code>cols</code> argument instead of the dots. This is <a href="https://tidyselect.r-lib.org/articles/tidyselect.html#selections-as-dots-or-as-named-arguments">preferable</a> in functions that have a main purpose other than selection itself — in this case, multiplying column values.</p>
+<p>All works fine so far. But suppose the user makes a mistake. They take the complement (<code>!</code>) of all columns that end on <code>"Length"</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">multiply_df</span>(<span class="sc">!</span><span class="fu">ends_with</span>(<span class="st">"Length"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There was 1 warning in `dplyr::mutate()`.
+ℹ In argument: `dplyr::across(...)`.
+Caused by warning in `Ops.factor()`:
+! '*' not meaningful for factors</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+         &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;lgl&gt;  
+1          5.1        3500          1.4         200 NA     
+2          4.9        3000          1.4         200 NA     
+3          4.7        3200          1.3         200 NA     </code></pre>
+</div>
+</div>
+<p>Well, that’s unfortunate. <code>"Species"</code> is a factor column, not a numeric one,<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> so its values are not supposed to be multiplied by any number. Indeed, it only ever makes sense for <code>multiply_df()</code> to operate on numeric columns.</p>
+<p>Specifying the selection as <code>!ends_with("Length") &amp; where(is.numeric)</code> would solve the issue, but I think this puts too much of an onus on the user. Adding selection criteria beyond <code>where(is.numeric)</code> will be a typical use case of the <code>cols</code> argument. It would be burdensome to keep adding this boilerplate code on top of every meaningful selection. It would also be risky because not adding <code>where(is.numeric)</code> would lead to bugs like above.</p>
+<p>What’s more, the two elements of this selection are very different: There any many possible reasons to write selections like <code>!ends_with("Length")</code>, all depending on the individual use case. By contrast, <code>where(is.numeric)</code> is much more fundamental to the whole purpose of <code>multiply_df()</code>.</p>
+</section>
+<section id="attempt-2-hard-coded-specifications" class="level2">
+<h2 class="anchored" data-anchor-id="attempt-2-hard-coded-specifications">Attempt 2: hard-coded specifications</h2>
+<p>Let’s tweak the function a little. It should always test for <code>where(is.numeric)</code>, so instead of setting this selection up as the default of <code>cols</code>, we hard-code it within the <code>across()</code> call. It’s now an additional test the columns need to pass in order to be selected — on top of any expressions the user might specify via <code>cols</code> to restrict selection even further.</p>
+<p>By default, however, there are no restrictions beyond being numeric. That’s ensured by the new <code>cols = everything()</code> default. If the user doesn’t specify <code>cols</code>, the function will operate on all columns that are not screened out by <code>where(is.numeric)</code>; i.e., all numeric columns. More on that below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>multiply_df <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">by =</span> <span class="dv">1000</span>) {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(data, dplyr<span class="sc">::</span><span class="fu">across</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">.cols =</span> {{ cols }} <span class="sc">&amp;</span> <span class="fu">where</span>(is.numeric),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">.fns  =</span> <span class="cf">function</span>(x) x <span class="sc">*</span> by</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">multiply_df</span>(<span class="sc">!</span><span class="fu">ends_with</span>(<span class="st">"Length"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+         &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;fct&gt;  
+1          5.1        3500          1.4         200 setosa 
+2          4.9        3000          1.4         200 setosa 
+3          4.7        3200          1.3         200 setosa </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">multiply_df</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+         &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;fct&gt;  
+1         5100        3500         1400         200 setosa 
+2         4900        3000         1400         200 setosa 
+3         4700        3200         1300         200 setosa </code></pre>
+</div>
+</div>
+<p>This keeps the function from forcing multiplication upon non-numeric columns. Yet hard-coding a selection is not very elegant. It might make sense in a simple example such as this one, but more complex functions will require more nuanced decisions about column selection. I will explore such a case further below.</p>
+</section>
+<section id="attempt-3-default-guardrails" class="level2">
+<h2 class="anchored" data-anchor-id="attempt-3-default-guardrails">Attempt 3: default guardrails</h2>
+<p>From now on, we will steer a middle course. Instead of either hard-coding selection or leaving it overly flexible, we add a Boolean argument with a default that ensures the function will only operate on numeric columns — unless the user overrides the default. (Again, it’s unclear when this would be useful with <code>multiply_df()</code>, but think of this simple case as a placeholder for more difficult ones.)</p>
+<p>This latest version of the function has some features that might bewilder you. It’s worth taking a detour here and discuss them in detail. That’s what the next section does.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>multiply_df <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">by =</span> <span class="dv">1000</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">check_numeric =</span> <span class="cn">TRUE</span>) {</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (check_numeric) {</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    selection2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="fu">where</span>(is.numeric))</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    selection2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="fu">everything</span>())</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(data, dplyr<span class="sc">::</span><span class="fu">across</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">.cols =</span> {{ cols }} <span class="sc">&amp;</span> <span class="sc">!!</span>selection2,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.fns  =</span> <span class="cf">function</span>(x) x <span class="sc">*</span> by</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The default works fine:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">multiply_df</span>(<span class="sc">!</span><span class="fu">ends_with</span>(<span class="st">"Length"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+         &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;fct&gt;  
+1          5.1        3500          1.4         200 setosa 
+2          4.9        3000          1.4         200 setosa 
+3          4.7        3200          1.3         200 setosa </code></pre>
+</div>
+</div>
+<p>Overriding the default leads to the same issue as before:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">|&gt;</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">multiply_df</span>(<span class="sc">!</span><span class="fu">ends_with</span>(<span class="st">"Length"</span>), <span class="at">check_numeric =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There was 1 warning in `dplyr::mutate()`.
+ℹ In argument: `dplyr::across(...)`.
+Caused by warning in `Ops.factor()`:
+! '*' not meaningful for factors</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+         &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;lgl&gt;  
+1          5.1        3500          1.4         200 NA     
+2          4.9        3000          1.4         200 NA     
+3          4.7        3200          1.3         200 NA     </code></pre>
+</div>
+</div>
+</section>
+<section id="identities-and-guardrails" class="level2">
+<h2 class="anchored" data-anchor-id="identities-and-guardrails">Identities and guardrails</h2>
+<p>All tidyselect operators have <em>identity elements</em>. An identity element, or identity for short, is an expression that doesn’t make a difference when combined with other expressions using some specific operator. We saw above that <code>where(is.numeric) &amp; everything()</code> had the same effect as <code>where(is.numeric)</code>. Adding <code>everything()</code> with the <code>&amp;</code> operator didn’t have any impact!</p>
+<p>If this seems complicated, think of mathematics where identity can be very simple: <span class="math inline">\(0\)</span> is the identity of addition, i.e., <span class="math inline">\(x + 0 = x\)</span> for all real <span class="math inline">\(x\)</span>. Likewise, <span class="math inline">\(1\)</span> is the identity of multiplication; <span class="math inline">\(1x = x\)</span>. You can see why these numbers are also called <em>neutral elements</em>: Throwing them into the equation with their respective operators doesn’t change the result either way.</p>
+<p>Let’s bring this closer to home. We can think of some identities in base R, each for one specific operation:</p>
+<ul>
+<li><p><code>paste0("abc", "")</code> returns <code>"abc"</code>.</p></li>
+<li><p><code>c(5, NULL)</code> returns <code>5</code>. Likewise with all other atomic vectors.</p></li>
+<li><p>Unsurprisingly, <code>0 + 5</code> and <code>1 * 5</code> both return <code>5</code>.</p></li>
+</ul>
+<p>What might be more surprising is that the same principle can sometimes be useful when wrapping tidyselect functions, such as <code>across()</code>. The basic idea is that some condition may change which columns should be selected. This change to the user-supplied selection — or <em>guardrail</em> — unfolds through an additional tidyselect expression. In such a context, an identity provides a safe fallback to which the additional expression will default if the condition is not met. This makes sure the selection is not changed when it’s not meant to be.</p>
+<p>We can distinguish two use cases:</p>
+<ul>
+<li><p><strong>Guardrails enabled by default.</strong> The default protects the user from overly flexible selection (i.e., too broad or too narrow) by modifying the selection in a way that is characteristic of the specific use case of the wrapper function. If the user overrides the default, the guardrails are replaced by the identity. An example is the last version of <code>multiply_df()</code> above.</p></li>
+<li><p><strong>Guardrails disabled by default.</strong> In this case, there is usually no need to modify the selection. The identity is the default here. Sometimes, however, the user may choose to restrict or expand the selection in some way that has a special relation to the use case of the wrapper function. Overriding the Boolean default is a handy way of adding these guardrails, especially if manually modifying the selection in the desired way would be difficult, bothersome, or both. An example is <code>restore_simple()</code>, discussed below.</p></li>
+</ul>
+<p>Each of these two can be subdivided into one use case that further restricts selection and one that further expands it. The <code>&amp;</code> and <code>|</code> operators are emblematic for this, but other operators can expand or restrict selection, as well.</p>
+<table class="table">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 44%">
+<col style="width: 43%">
+</colgroup>
+<tbody>
+<tr class="odd">
+<td></td>
+<td><strong>Restrict selection</strong></td>
+<td><strong>Expand selection</strong></td>
+</tr>
+<tr class="even">
+<td><strong>Guardrails enabled by default</strong></td>
+<td>Certain columns should not normally be selected, even if the user-supplied tidyselect specification (or its default) would include them</td>
+<td>Certain columns should normally be selected, even if the user-supplied tidyselect specification (or its default) would exclude them</td>
+</tr>
+<tr class="odd">
+<td><strong>Guardrails disabled by default</strong></td>
+<td>The user chooses to add necessary conditions so that columns are selected more strictly</td>
+<td>The user chooses to add sufficient conditions so that columns are selected more permissively</td>
+</tr>
+</tbody>
+</table>
+<p>Here is an overview of tidyselect’s unique set of identities:</p>
+<table class="table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 13%">
+<col style="width: 53%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Guardrails use case</th>
+<th>Tidyselect operator</th>
+<th>Identity elements</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>NA</code></td>
+<td><code>:</code></td>
+<td>Element on the other side (either location index or bare column name)</td>
+</tr>
+<tr class="even">
+<td>Restrict selection by adding necessary conditions</td>
+<td><code>&amp;</code></td>
+<td><code>everything()</code>, <code>!NULL</code>; <code>!where(is.null))</code>; <code>!where(isTRUE)</code>; <code>!where(isFALSE)</code></td>
+</tr>
+<tr class="odd">
+<td>Expand selection by adding sufficient conditions</td>
+<td><code>|</code></td>
+<td><code>!everything()</code>; <code>NULL</code>; <code>where(is.null))</code>; <code>where(isTRUE)</code>; <code>where(isFALSE)</code></td>
+</tr>
+<tr class="even">
+<td><code>NA</code></td>
+<td><code>!</code></td>
+<td><code>!everything()</code>; <code>NULL</code>; <code>where(is.null))</code>; <code>where(isTRUE)</code>; <code>where(isFALSE)</code></td>
+</tr>
+<tr class="odd">
+<td><code>NA</code></td>
+<td><code>c()</code></td>
+<td><code>!everything()</code>; <code>NULL</code>; <code>where(is.null))</code>; <code>where(isTRUE)</code>; <code>where(isFALSE)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Note that the guardrails override their identity element if and only if the condition in question is met. In the following, I will only discuss the first identity of each operator except <code>:</code>, i.e., <code>everything()</code> and <code>!everything()</code>. That’s because <code>everything()</code> is designated to be part of tidyselect’s API but the other identities aren’t.</p>
+</section>
+<section id="messages" class="level2">
+<h2 class="anchored" data-anchor-id="messages">Messages</h2>
+<p>Guardrails should never influence selection silently. I wrote a function that informs the user if one or more columns were excluded from selection by the guardrails. It’s used within the functions below but hidden here:</p>
+<p><strong>TO DO: CALL THE BELOW FUNCTION IN THE CASE STUDY FUNCTIONS (FURTHER BELOW). THINK OF WHICH CONDITIONS SHOULD TRIGGER THIS. LOOK AT THE TWO scrutiny FUNCTIONS FOR INSPIRATION. THEN, DESCRIBE THIS PROCESS IN THE WORKFLOW SECTION. MAYBE ALSO WRITE AN <code>inform_guardrails_expansion()</code> FUNCTION; THEN APPLY IT ACCORDINGLY.</strong></p>
+<div class="cell">
+<details>
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Note: `names_cols_not_selected` and</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># `name_crucial_check` are required arguments.</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># `name_crucial_check` should be the name of</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co"># the `check_*` argument that excluded the columns</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># named in `names_cols_not_selected`.</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># All other arguments default to a generic message.</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Customize them to make the message more specific.</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>inform_guardrails_restriction <span class="ot">&lt;-</span> <span class="cf">function</span>(names_cols_not_selected,</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>                                          name_crucial_check,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">msg_exclusion =</span> <span class="fu">paste</span>(<span class="fu">c</span>(<span class="st">"was"</span>, <span class="st">"were"</span>), <span class="st">"not selected"</span>),</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">msg_reason =</span> <span class="fu">paste0</span>(<span class="st">"fulfill the criteria of `"</span>, name_crucial_check, <span class="st">"`"</span>),</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">msg_it_they =</span> <span class="fu">c</span>(<span class="st">"It doesn't"</span>, <span class="st">"They don't"</span>)) {</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(names_cols_not_selected) <span class="sc">==</span> 1L) {</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        msg_col_cols <span class="ot">&lt;-</span> <span class="st">"1 column"</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        msg_it_they <span class="ot">&lt;-</span> msg_it_they[1L]</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        msg_exclusion <span class="ot">&lt;-</span> msg_exclusion[1L]</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> {</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>        msg_col_cols <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">length</span>(names_cols_not_selected), <span class="st">"columns"</span>)</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>        msg_it_they <span class="ot">&lt;-</span> msg_it_they[<span class="fu">max</span>(1L, <span class="fu">length</span>(msg_it_they))]</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>        msg_exclusion <span class="ot">&lt;-</span> msg_exclusion[<span class="fu">max</span>(1L, <span class="fu">length</span>(msg_exclusion))]</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    names_cols_not_selected <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"`"</span>, names_cols_not_selected, <span class="st">"`"</span>)</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="fu">c</span>(<span class="st">"i"</span> <span class="ot">=</span> <span class="st">"{msg_col_cols} {msg_exclusion}: {names_cols_not_selected}."</span>, </span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">"i"</span> <span class="ot">=</span> <span class="st">"{msg_it_they} {msg_reason}."</span>))</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="workflow" class="level2">
+<h2 class="anchored" data-anchor-id="workflow">Workflow</h2>
+<p>Follow these steps to make practical use of guardrails in a tidyselect-wrapping function. Examples for each step are given in the next section.</p>
+<ol type="1">
+<li>Give your function a <code>cols</code> argument with a selection like <code>everything()</code> or <code>where(is.numeric)</code> as its default.</li>
+<li>Check for the condition that should be able to modify column selection. Think of a selection that fits your use case, defuse it with <code>rlang::expr()</code>, and set up the result to be assigned to a new variable, <code>selection2</code>, if the condition is met.</li>
+<li>Choose a tidyselect operator that fits your use case (see table above). Wrap its identity element into <code>rlang::expr()</code> and set up the result to be assigned to <code>selection2</code> if the condition is <em>not</em> met.</li>
+<li>Call the tidyselect function of your choice. Within the call, inject the two selections like <code>{{ cols }} OPERATOR !!selection2</code>, using the operator chosen in step 3. If <code>selection2</code> is a list rather than a single expression, inject it with <code>!!!</code> rather than <code>!!</code>.</li>
+</ol>
+<p>Step 2 suggests <code>selection2</code> as a variable name because <code>cols</code> represents the first selection.</p>
+<p>In step 4, make sure to write <code>{{ cols }}</code>, not <code>!!cols</code>. Since <code>cols</code> is a function argument that you didn’t defuse before step 4, <code>!!cols</code> would lead to an error:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>Error <span class="cf">in</span> <span class="fu">local_error_context</span>(<span class="at">dots =</span> dots, <span class="at">.index =</span> i, <span class="at">mask =</span> mask) <span class="sc">:</span> </span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  promise already under evaluation<span class="sc">:</span> recursive default argument reference or earlier problems?</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Conversely, for <code>selection2</code>, you should always use <code>!!</code> (or <code>!!!</code>), not <code>{{ }}</code>, because the embrace operator is <a href="https://rlang.r-lib.org/reference/topic-embrace-non-args.html">only suitable for function arguments</a>.</p>
+</section>
+<section id="case-study-restore_zeros_df" class="level2">
+<h2 class="anchored" data-anchor-id="case-study-restore_zeros_df">Case study: <code>restore_zeros_df()</code></h2>
+<p>As an example for optional guardrails that restrict selection, here is a simplified version of <a href="https://github.com/lhdjung/scrutiny/blob/main/R/restore-zeros.R"><code>scrutiny::restore_zeros_df()</code></a>. The steps are numbered as in the workflow above.</p>
+<p>This function converts numeric columns to string and pads their values with trailing zeros after the decimal point.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. This function has a `cols` argument with a</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># tidyselect expression as its default:</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>restore_simple <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">cols =</span> <span class="fu">everything</span>(),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                           <span class="at">check_decimals =</span> <span class="cn">FALSE</span>, <span class="at">width =</span> <span class="cn">NULL</span>) {</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 2. If desired by the user, create an additional selection criterion --</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># at least one value per column must have at least one decimal place:</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (check_decimals) {</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    selection2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">where</span>(<span class="cf">function</span>(x) <span class="sc">!</span><span class="fu">all</span>(scrutiny<span class="sc">::</span><span class="fu">decimal_places</span>(x) <span class="sc">==</span> 0L))</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Otherwise, the new variable is set up to be evaluated as </span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># `everything()`, which is an identity element of the `&amp;`</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># operator in tidyselect:</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    selection2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="fu">everything</span>())</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 4. We call `across()` within `mutate()` because we want</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># to modify multiple columns. These are primarily selected</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># via `cols`, which defaults to selecting all numeric</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># columns. The role of `selection2` is to further restrict</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># the selection if desired by the user. Therefore, we</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># combine both variables with `&amp;`:</span></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(data, dplyr<span class="sc">::</span><span class="fu">across</span>(</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">.cols =</span> {{ cols }} <span class="sc">&amp;</span> <span class="sc">!!</span>selection2,</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">.fns  =</span> <span class="cf">function</span>(data_dummy) {</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>      scrutiny<span class="sc">::</span><span class="fu">restore_zeros</span>(<span class="at">x =</span> data_dummy, <span class="at">width =</span> width)</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s try it out. First, we add an integer column to <code>iris</code> for testing the <code>check_decimals</code> argument. We also remove <code>"Species"</code> for simplicity: With a non-numeric column left, the function would actually need guardrails that are enabled by default as well, just like in <code>multiply_df()</code>. Else, the <code>"Species"</code> factor will be coerced to <code>NA</code>s again! Although multiple guardrails are not impossible, we circumvent the issue by choosing to work with numeric columns only.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>iris_numeric <span class="ot">&lt;-</span> iris <span class="sc">|&gt;</span> </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">Species =</span> <span class="cn">NULL</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>All numeric columns are selected by default:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>iris_numeric <span class="sc">|&gt;</span> </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">restore_simple</span>(<span class="at">width =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width id   
+  &lt;chr&gt;        &lt;chr&gt;       &lt;chr&gt;        &lt;chr&gt;       &lt;chr&gt;
+1 5.100        3.500       1.400        0.200       1.000
+2 4.900        3.000       1.400        0.200       2.000
+3 4.700        3.200       1.300        0.200       3.000</code></pre>
+</div>
+</div>
+<p>Regular user-supplied selections also work:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>iris_numeric <span class="sc">|&gt;</span> </span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">restore_simple</span>(<span class="at">cols =</span> <span class="fu">contains</span>(<span class="st">"i"</span>), <span class="at">width =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width id   
+         &lt;dbl&gt; &lt;chr&gt;              &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;
+1          5.1 3.500                1.4 0.200       1.000
+2          4.9 3.000                1.4 0.200       2.000
+3          4.7 3.200                1.3 0.200       3.000</code></pre>
+</div>
+</div>
+<p>Here, <code>id</code> is excluded because setting <code>check_decimals</code> to <code>TRUE</code> leads to <code>selection2</code> becoming the guardrail that ultimately returns <code>FALSE</code> for <code>id</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>iris_numeric <span class="sc">|&gt;</span> </span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">restore_simple</span>(<span class="at">cols =</span> <span class="fu">contains</span>(<span class="st">"i"</span>), <span class="at">check_decimals =</span> <span class="cn">TRUE</span>, <span class="at">width =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Sepal.Length Sepal.Width Petal.Length Petal.Width    id
+         &lt;dbl&gt; &lt;chr&gt;              &lt;dbl&gt; &lt;chr&gt;       &lt;int&gt;
+1          5.1 3.500                1.4 0.200           1
+2          4.9 3.000                1.4 0.200           2
+3          4.7 3.200                1.3 0.200           3</code></pre>
+</div>
+</div>
+<p>Note that <code>restore_simple()</code> is not perfect. By default, for example, it doesn’t operate on numbers stored in string columns. <a href="https://github.com/lhdjung/scrutiny/blob/main/R/restore-zeros.R"><code>scrutiny::restore_zeros_df()</code></a> has a more judicious default that checks whether a column is numeric or otherwise coercible to numeric.</p>
+</section>
+<section id="when-should-i-use-this" class="level2">
+<h2 class="anchored" data-anchor-id="when-should-i-use-this">When should I use this?</h2>
+<p>The guardrails pattern has some downsides. First off, it compromises the tidyselect API. Even if the user’s selection says <code>everything()</code>, the function is no longer guaranteed to operate on all columns. Guardrails effectively split the selection between two or more parameters, and it’s up to the user to keep track of them.</p>
+<p>This, in turn, puts an onus on the developer to handle questions of guardrails with care. Here are some recommendations in descending order of heavy-handedness:</p>
+<ul>
+<li><p>Only enable guardrails by default if the default is essential to the purpose of your function. For example, arithmetic operations as in <code>multiply_df()</code> only make sense with numeric(-like) columns, so a default guardrail might be sensible.</p></li>
+<li><p>If a selection is sensible but not essential — i.e., a matter of recommendation —, and it would be hard or tedious for the user to manually tweak the selection to the same effect, implement it as a guardrail that is disabled by default. An example is <code>restore_simple()</code>.</p></li>
+<li><p>Finally, if the user can perform every sensible selection as straightforwardly as in <code>where(is.numeric)</code>, don’t use any guardrails at all.</p></li>
+</ul>
+<p>Guardrails enabled by default should always be documented together with the <code>cols</code> argument, so that the user invariably stumbles upon them when learning about <code>cols</code>. This makes sure users are aware that selection is not controlled by <code>cols</code> alone. For example, here are the respective arguments from <a href="https://lhdjung.github.io/scrutiny/reference/split_by_parens.html"><code>scrutiny::split_by_parens()</code></a>:</p>
+<blockquote class="blockquote">
+<p><strong>cols</strong></p>
+<p>Select columns from <code>data</code> using <a href="https://tidyselect.r-lib.org/reference/language.html">tidyselect</a>. Default is <code>everything()</code>, which selects all columns, but by default, they still need to pass <code>check_sep</code>.</p>
+<p><strong>check_sep</strong></p>
+<p>Boolean. If <code>TRUE</code> (the default), columns are skipped if they don’t contain the <code>sep</code> elements.</p>
+</blockquote>
+<p>If guardrails are disabled by default, tweak the wording slightly. Here is a simplified rundown of the corresponding arguments in <a href="https://lhdjung.github.io/scrutiny/reference/restore_zeros.html"><code>scrutiny::restore_zeros_df()</code></a>:</p>
+<blockquote class="blockquote">
+<p><strong>cols</strong></p>
+<p>Select columns from <code>data</code> using <a href="https://tidyselect.r-lib.org/reference/language.html">tidyselect</a>. Default is <code>everything()</code>, which selects all columns unless <code>check_decimals</code> is set to <code>TRUE</code>.</p>
+<p><strong>check_decimals</strong></p>
+<p>Boolean. If set to <code>TRUE</code>, the function will skip columns where no values have any decimal places. Default is <code>FALSE</code>.</p>
+</blockquote>
+<p>All of this might create dependencies between arguments, thereby violating the <a href="https://design.tidyverse.org/args-independence.html">tidyverse design guide</a>. Guardrails do divide the selection into multiple arguments. However, the guide’s notion of “dependencies between arguments” seems to require that “only certain combinations [of argument specifications] are permitted” for the function to work. This is not the case with guardrails: At worst, they will change column selection in an unforeseen way.</p>
+<p>It’s much more likely that they will prevent this very problem by tailoring selection to a function’s specific use case. They will exempt non-numeric values from arithmetic operations, or save strings from being split by substrings which they don’t contain. Guardrails make life easier for the user.</p>
+
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>You might know that factors are <a href="https://adv-r.hadley.nz/vectors-chap.html#factors">integers under the hood</a>. Yet they don’t count as numeric. This is not specific to tidyselect: <code>is.numeric(iris$Species)</code> and even <code>is.integer(iris$Species)</code> return <code>FALSE</code>. Only <code>is.factor(iris$Species)</code> returns <code>TRUE</code>. For all intents and purposes, factors can be treated as if they were their own base type. This is different from data frames, which are <a href="https://adv-r.hadley.nz/vectors-chap.html#tibble">lists under the hood</a>, and <code>is.list(iris)</code> returns <code>TRUE</code>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

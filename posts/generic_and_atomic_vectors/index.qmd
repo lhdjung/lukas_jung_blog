@@ -1,0 +1,42 @@
+---
+title: "R lists as generic vectors"
+author: "Lukas Jung"
+date: "2022-11-14"
+categories: [code, analysis]
+image: "image.jpg"
+draft: true
+---
+
+Generic vectors are lists. Many R users know about lists, but only few know about "generic vectors".
+
+If you know what lists are, you likely know what [atomic vectors](https://adv-r.hadley.nz/vectors-chap.html#atomic-vectors) are, as well. Atomic vectors are so called because each of their elements needs to have length 1. It also needs to be of the same type as every other element. These two restrictions distinguish atomic vectors from generic ones, that is, from lists.
+
+## Sources
+
+R Core Team, [*R Language Definition*](https://cran.r-project.org/doc/manuals/r-release/R-lang.html):
+
+> Lists ("generic vectors") are another kind of data storage.
+>
+> \[...\]
+>
+> Pairlists are handled in the R language in exactly the same way as generic vectors ("lists"). In particular, elements are accessed using the same `[[]]` syntax. The use of pairlists is deprecated since generic vectors are usually more efficient to use. When an internal pairlist is accessed from R it is generally (including when subsetted) converted to a generic vector.
+
+Colin Fay, [*R Internals*, chapter 1](https://colinfay.me/r-internals/r-internal-structures.html#index-generic_002c-generic):
+
+> Atomic vector objects write their length followed by the data: generic vector-list objects write their length followed by a call to `WriteItem` for each element.
+
+`?list`:
+
+> Lists -- Generic and Dotted Pairs
+>
+> \[...\]
+>
+> Almost all lists in **R** internally are *Generic Vectors*, whereas traditional *dotted pair* lists (as in LISP) remain available but rarely seen by users (except as `formals` of functions).
+
+`?unlist()`:
+
+> A list is a (generic) vector, and the simplified vector might still be a list (and might be unchanged).
+
+`?names()`:
+
+> The name `""` is special: it is used to indicate that there is no name associated with an element of a (atomic or generic) vector.

@@ -1,0 +1,415 @@
+---
+title: "How to find the mode in R (or not)"
+format:
+  html:
+    code-fold: false
+    code-summary: "Show code"
+---
+
+R is made for statistics. Surprisingly, though, there is no built-in R function to find the statistical mode: the most frequent value in a given distribution. (The base R function `mode()` has a very different use case.)
+
+Here are three functions to help you out.
+
+All functions behave the same way if there is only one mode. If there are multiple modes, `mode_first()` only returns the one that appears first. `mode_all()` returns all modes. `mode_single()` returns `NA` in this case.
+
+```{r}
+mode_first <- function(x, na.rm = FALSE) {
+  ux <- unique(x[!is.na(x)])
+  mode1 <- ux[which.max(tabulate(match(x, ux)))]
+  if (na.rm || !any(is.na(x))) {
+    return(mode1)
+  }
+  mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
+  count_mode1 <- length(x[x == mode1])
+  count_mode2 <- length(x[x == mode2])
+  count_na <- length(x[is.na(x)])
+  if (count_mode1 >= count_mode2 + count_na) {
+    mode1
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_all <- function(x, na.rm = FALSE) {
+  ux <- unique(x[!is.na(x)])
+  tab <- tabulate(match(x, ux))
+  modes <- ux[tab == max(tab)]
+  if (length(modes) == 1L) {
+    mode_first(x = x, na.rm = na.rm)
+  } else if (na.rm || !any(is.na(x))) {
+    modes
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_single <- function(x, na.rm = FALSE) {
+  modes <- mode_all(x = x, na.rm = na.rm)
+  if (length(modes) == 1L) {
+    modes
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+```
+
+Alternative implementation, with a helper to avoid redundancies:
+
+```{r}
+# Helper:
+helper_mode_or_na <- function(x, ux, mode1) {
+  mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
+  count_mode1 <- length(x[x == mode1])
+  count_mode2 <- length(x[x == mode2])
+  count_na <- length(x[is.na(x)])
+  if (count_mode1 >= count_mode2 + count_na) {
+    mode1
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_first2 <- function(x, na.rm = FALSE) {
+  ux <- unique(x[!is.na(x)])
+  mode1 <- ux[which.max(tabulate(match(x, ux)))]
+  if (na.rm || !any(is.na(x))) {
+    mode1
+  } else {
+    helper_mode_or_na(x, ux, mode1)
+  }
+}
+
+mode_all2 <- function(x, na.rm = FALSE) {
+  ux <- unique(x[!is.na(x)])
+  tab <- tabulate(match(x, ux))
+  modes <- ux[tab == max(tab)]
+  if (length(modes) == 1L) {
+    helper_mode_or_na(x, ux, modes)
+  } else if (na.rm || !any(is.na(x))) {
+    modes
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_single2 <- function(x, na.rm = FALSE) {
+  modes <- mode_all(x = x, na.rm = na.rm)
+  if (length(modes) == 1L) {
+    modes
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+```
+
+At their core, these functions are based on a [Stack Overflow answer by Ken Williams](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). Go to *Implementation notes* below for details.
+
+What is so special about these functions? They really care about `NA`s. Let's have a look.
+
+## Get the first mode with `mode_first()`
+
+Everything is fine here:
+
+```{r}
+x1 <- c(7, 8, 8, 9, 9, 9)
+mode_first(x1)
+```
+
+But what if some values are missing? Think about what it means to look for the most frequent value in such a distribution. Maybe there are so many missings that it's impossible to tell which value is the most frequent one. For example:
+
+```{r}
+x2 <- c(1, 1, 2, 2, 2, 2, NA, NA, NA, NA)
+mode_first(x2)
+```
+
+If each `NA` stands in for `1`, then `1` is the most frequent value. Accordingly for `2`. The mode of `x1` depends on the true values hiding behind `NA`. Since we don't know these values, we don't know the mode! The function should return `NA`, and it does.
+
+Ignore `NA`s using `na.rm = TRUE` if you must:
+
+```{r}
+mode_first(x2, na.rm = TRUE)
+```
+
+This distribution is different:
+
+```{r}
+x3 <- c(7, 7, 8, 8, 8, 8, NA)
+mode_first(x3)
+```
+
+Even if the `NA` stands in for `7`, there will only be three instances of `7` but four instances of `8`. The mode is `8`, independent of the true value behind `NA`.
+
+## Get all modes with `mode_all()`
+
+This function captures multiple modes:
+
+```{r}
+x4 <- c("a", "a", "b", "b", "c", "d", "e")
+mode_all(x4)
+```
+
+If some values are missing but there would be multiple modes when ignoring `NA`s, `mode_all()` returns `NA`. That's because missings can easily create an imbalance between the equally-frequent known values:
+
+```{r}
+x5 <- c(1, 1, 2, 2, NA)
+mode_all(x5)
+```
+
+If `NA` masks either `1` or `2`, that number is the (single) mode. As before, if the mode depends on missing values, the function returns `NA`.
+
+Yet `na.rm = TRUE` makes the function ignore this:
+
+```{r}
+mode_all(x5, na.rm = TRUE)
+```
+
+## Get the single mode (or `NA`) with `mode_single()`
+
+`mode_single()` is stricter than `mode_first()`: It returns `NA` if there are multiple modes. Otherwise, it works the same way.
+
+```{r}
+x1
+mode_single(x1)
+
+x4
+mode_single(x4)
+```
+
+```{r eval=FALSE, include=FALSE}
+
+# COMPARE IMPLEMENTATIONS:
+
+x <- list(x1, x2, x3, x4, x5)
+
+# The two original functions by Ken Williams:
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+Modes <- function(x) {
+  ux <- unique(x)
+  tab <- tabulate(match(x, ux))
+  ux[tab == max(tab)]
+}
+
+df <- tibble::tibble(
+    x = x,
+    mode_first = unlist(purrr::map(x, mode_first)),
+    mode_single = unlist(purrr::map(x, mode_single)),
+    Mode = unlist(purrr::map(x, Mode)),
+    mode_all = purrr::map(x, mode_all),
+    Modes = purrr::map(x, Modes)
+)
+
+df
+```
+
+```{r eval=FALSE, include=FALSE}
+
+# BENCHMARKING
+
+# `mode_first()`
+comp_mode_first_x1 <- bench::mark(
+  old =  mode_first(x1),
+  new = mode_first2(x1),
+  iterations = 20000
+)
+comp_mode_first_x2 <- bench::mark(
+  old =  mode_first(x2),
+  new = mode_first2(x2),
+  iterations = 20000
+)
+comp_mode_first_x3 <- bench::mark(
+  old =  mode_first(x3),
+  new = mode_first2(x3),
+  iterations = 20000
+)
+comp_mode_first_x4 <- bench::mark(
+  old =  mode_first(x4),
+  new = mode_first2(x4),
+  iterations = 20000
+)
+comp_mode_first_x5 <- bench::mark(
+  old =  mode_first(x5),
+  new = mode_first2(x5),
+  iterations = 20000
+)
+
+# `mode_all()`
+comp_mode_all_x1 <- bench::mark(
+  old =  mode_all(x1),
+  new = mode_all2(x1),
+  iterations = 20000
+)
+comp_mode_all_x2 <- bench::mark(
+  old =  mode_all(x2),
+  new = mode_all2(x2),
+  iterations = 20000
+)
+comp_mode_all_x3 <- bench::mark(
+  old =  mode_all(x3),
+  new = mode_all2(x3),
+  iterations = 20000
+)
+comp_mode_all_x4 <- bench::mark(
+  old =  mode_all(x4),
+  new = mode_all2(x4),
+  iterations = 20000
+)
+comp_mode_all_x5 <- bench::mark(
+  old =  mode_all(x5),
+  new = mode_all2(x5),
+  iterations = 20000
+)
+
+# `mode_single()`
+comp_mode_single_x1 <- bench::mark(
+  old =  mode_all(x1),
+  new = mode_all2(x1),
+  iterations = 20000
+)
+comp_mode_single_x2 <- bench::mark(
+  old =  mode_all(x2),
+  new = mode_all2(x2),
+  iterations = 20000
+)
+comp_mode_single_x3 <- bench::mark(
+  old =  mode_all(x3),
+  new = mode_all2(x3),
+  iterations = 20000
+)
+comp_mode_single_x4 <- bench::mark(
+  old =  mode_all(x4),
+  new = mode_all2(x4),
+  iterations = 20000
+)
+comp_mode_single_x5 <- bench::mark(
+  old =  mode_all(x5),
+  new = mode_all2(x5),
+  iterations = 20000
+)
+```
+
+## Implementation notes
+
+The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that `mode_single()` internally calls `mode_all()`, and `mode_all()` calls `mode_first()`.
+
+The `na.rm` argument follows similar R functions, such as `mean()` and `median()`. Still, it shouldn't be set to `TRUE` without a strong rationale. Missing values have real meaning, and all these functions handle them accordingly --- like [base R operators do](https://adv-r.hadley.nz/vectors-chap.html#missing-values).
+
+Click "Show code" to see step-by-step commented versions of all three functions.
+
+```{r eval=FALSE}
+#| code-fold: true
+
+mode_first <- function(x, na.rm = FALSE) {
+  # We first determine the unique known values
+  # of `x`. `NA`s are ignored at this point
+  # because they will receive special treatment
+  # later on.
+  ux <- unique(x[!is.na(x)])
+  # Find the index of the most frequent known
+  # value (the possible mode) and subset this
+  # value:
+  mode1 <- ux[which.max(tabulate(match(x, ux)))]
+  # The present implementation only differs from
+  # the linked original function in terms of `NA` handling.
+  # Therefore, it returns `mode1` just like that function
+  # does if missing values are not an issue -- either
+  # because the user chose to ignore them (`na.rm = TRUE`)
+  # or because there are no `NA`s to begin with:
+  if (na.rm || !any(is.na(x))) {
+    return(mode1)
+  }
+  # One or more values are missing. We need to check
+  # whether there are so many missings that the most
+  # frequent known value, `mode1`, might be less
+  # frequent than the second-most frequent one (or
+  # the first value tied with `mode1` but appearing
+  # after it) if all the `NA`s mask the latter.
+  # To do so, we need to find this second value.
+  # We look for a possible mode much like above,
+  # but this time, we exclude the `mode1` values:
+  mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
+  # Count instances of the three relevant available
+  # values -- most and second-most frequent known
+  # values as well as missing values:
+  count_mode1 <- length(x[x == mode1])
+  count_mode2 <- length(x[x == mode2])
+  count_na <- length(x[is.na(x)])
+  # `mode1` is the true mode only if it's
+  # at least as frequent as the sum of the
+  # other two counts. Otherwise, if all the
+  # `NA`s mask `mode2` values, the true count
+  # of `mode2` would be higher than that of
+  # `mode1`. We don't know which values hide
+  # behind `NA`, so we can't rule out this
+  # second scenario if the known count of
+  # `mode1` is lower than a possibly true
+  # count of `mode2`. Therefore, if
+  # `count_mode1` is not large enough, the
+  # function returns `NA` (coerced to the
+  # same type as the input, `x`):
+  if (count_mode1 >= count_mode2 + count_na) {
+    mode1
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_all <- function(x, na.rm = FALSE) {
+  # As above, we first determine the unique
+  # known values of `x`. `NA`s are ignored
+  # at this point because they will receive
+  # special treatment later on.
+  ux <- unique(x[!is.na(x)])
+  # Count the instances of each known value:
+  tab <- tabulate(match(x, ux))
+  # Subset the vector of unique known values
+  # at the indices corresponding to the
+  # most frequent known values:
+  modes <- ux[tab == max(tab)]
+  # A seemingly unimodal distribution is
+  # subject to the `NA`-related caveats
+  # described in `mode_first()`, so `x`
+  # is passed to this function:
+  if (length(modes) == 1L) {
+    mode_first(x = x, na.rm = na.rm)
+    # Multimodal distributions without `NA`s
+    # have a clearly determined set of modes.
+    # If they do have `NA`s, the user can
+    # (but probably shouldn't) ignore the
+    # issue by setting `na.rm` to `TRUE`:
+  } else if (na.rm || !any(is.na(x))) {
+    modes
+    # Any missing value could mask any of the
+    # known values tied for most frequent --
+    # and break the tie. This makes it
+    # impossible to determine the true set
+    # of modes, so the function returns `NA`:
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_single <- function(x, na.rm = FALSE) {
+  # We also need to check the number of
+  # modes here, so we call `mode_all()`:
+  modes <- mode_all(x = x, na.rm = na.rm)
+  # As the name says, if the distribution
+  # has a single mode, that value is returned.
+  # Multimodal distributions lead to `NA`.
+  # Some users prefer this stricter way of
+  # estimating the mode, or they require it
+  # for their specific use cases.
+  if (length(modes) == 1L) {
+    modes
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+```
+
+## Learn more
+
+What about other mode estimation techniques in R? Search this [CRAN Task View](https://cran.r-project.org/web/views/Distributions.html) for "Mode estimation". However, I haven't checked how the packages listed there deal with missing values.

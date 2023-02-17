@@ -1,0 +1,81 @@
+---
+title: "tidyselect_old_workflow"
+eval: false
+---
+
+## UNCLEAR IF THE FOLLOWING IS NEEDED! MAYBE JUST ELABORATE ON tidyselect_neutral_elements.qmd!
+
+### OLD WORKFLOW (PERHAPS OVERLY COMPLEX)
+
+Identity elements are not directly relevant for interactive data analysis. However, they can be used to represent defaults for parts of a tidyselect specification. The general workflow is as follows:
+
+1.  Capture a user-supplied tidyselect specification with `rlang::enexprs(...)` or `rlang::enexpr(specification_arg)` and assign it to a new variable, `selector1`.
+2.  Check whether `selector1` has a length of 1 or more --- i.e., whether the user actually supplied anything. If not, capture a default expression using `list(rlang::expr(your_default))` and assign it to `selector1`.
+3.  Depending on the value of another argument, assign one of multiple possible expressions to a new variable called `selector2` using `rlang::expr()`. One of these possible expressions should be a identity element. The exact way to construct it depends on the alternative expression that it replaces:
+    -   If the alternative `selector2` value is meant to be an additional selection constraint (i.e., one more test which the columns need to pass), `selector2` in the default case should be assigned `rlang::expr(dplyr::everything())`. Later, within `across()`, choose the `&` operator.
+
+    -   Else, if the alternative `selector2` value is meant to (potentially) expand the scope of selection rather than restricting it, `selector2` in the default case should be assigned `rlang::expr(where(isTRUE))`. Later, within `across()`, choose the `|` operator.
+4.  Call `across()` within `mutate()` or `summarise()`. Specify its `.cols` argument as `c(!!!selector1) & !!selector2` or `c(!!!selector1) | !!selector2`, choosing the operator as explained in step 3. Note that you may need to change `!!` to `!!!` or vice versa:
+    -   If a `selector*` variable is a single expression, choose `!!` for it.
+
+    -   Else, if it's a list of expressions, choose `!!!` for it.
+
+Here is a simplified version of `scrutiny::split_by_parens()`, which separates string columns that contain values like `"0.41 (0.28)"` and creates two new columns for every original one:
+
+```{r}
+split_simple <- function(data, ..., .sep = "parens",
+                         .col1 = "x", .col2 = "sd") {
+
+  # Capture any valid tidyselect specification that might have been applied by
+  # the user to select columns from `data`:
+  selector <- rlang::enexprs(...)
+
+  # In case no columns were specified that way, prepare and defuse a call that
+  # will select all columns:
+  if (length(selector) == 0L) {
+    selector <- rlang::exprs(dplyr::everything())
+  }
+  
+  # Prepare column name endings:
+  endings <- rep(c(.col1, .col2), times = ncol(data))
+
+  # Apply the extractor functions `before_parens()` and `inside_parens()` to all
+  # selected columns from `data` (see above), going by `.sep`, which is
+  # `"parens"` by default and will thus look for parentheses:
+  out <- dplyr::mutate(data, dplyr::across(
+    .cols  = c(!!!selector),
+    .fns   = list(scrutiny::before_parens, scrutiny::inside_parens),
+    .names = "{.col}_{endings}",
+    sep = .sep
+  ))
+  
+  dplyr::select(out, -names(data))
+}
+```
+
+The default works well if all columns look like this:
+
+```{r}
+df1 <- tribble(
+    ~height,          ~mass,
+    "0.09 (0.21)",    "0.19 (0.13)",
+    "0.19 (0.28)",    "0.53 (0.10)"
+)
+
+split_simple(df1)
+```
+
+### Sequences with `:`
+
+As in base R, the `:` operator reduces a tidyselect expression to itself if it's found on both sides:
+
+```{r}
+iris |> 
+    select(Sepal.Width:Sepal.Width)
+
+iris |> 
+    select(2:2)
+
+# Just like base R:
+2:2
+```

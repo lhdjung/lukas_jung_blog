@@ -1,0 +1,329 @@
+---
+title: "Writing functions with `dplyr::across()` and tidyselect"
+format:
+  html:
+    code-fold: false
+    code-summary: "Show code"
+---
+
+Some R functions like `dplyr::select()`, `dplyr::across()`, and `tidyr::pivot_longer()` use a special selection syntax. You may have seen `starts_with()` or `everything()` in a call to a function that selects columns:
+
+```{r}
+library(dplyr) |> 
+  suppressPackageStartupMessages()
+
+# For better printing:
+iris <- iris |> 
+  as_tibble() |> 
+  slice(1:3)
+
+iris |> 
+  select(starts_with("Sepal"))
+```
+
+Code like this relies on a framework called [tidyselect](https://tidyselect.r-lib.org/index.html). Knowing the basics of tidyselect is beneficial for R users in general because `select()` and `pivot_longer()` are among the language's most popular functions.
+
+However, the framework is especially interesting for package developers. Plugging your functions into tidyselect will give them more power and flexibility, and it will better align them with the tidyverse. This will make them easier accessible for users who are familiar with the high-profile functions mentioned above.
+
+This blogpost is about programming with tidyselect. Although the framework allows you to implement your own [low-level interfaces](https://tidyselect.r-lib.org/articles/tidyselect.html), I will only discuss wrappers around existing functions that use tidyselect. I will focus on `dplyr::across()`, an amazingly powerful tool that applies functions to multiple columns in a data frame. The role of tidyselect is to control which columns are operated on.
+
+There is a [nice dplyr vignette](https://dplyr.tidyverse.org/dev/articles/programming.html) that introduces programming with `across()`. Be sure to check it out first to get a sense of the function's capabilities. Here, I will discuss a style of working with tidyselect that I haven't seen anywhere else. I hope the framework's developers will either approve of my ideas or not read the post.
+
+## Attempt 1: unspecific selection
+
+Let's start with a simple example. Here is a function that multiplies all numeric columns in a data frame by some number:
+
+```{r}
+multiply_df <- function(data, cols = where(is.numeric), by = 1000) {
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ cols }},
+    .fns  = function(x) x * by
+  ))
+}
+
+iris |> 
+  multiply_df(1:2)
+```
+
+By default, all numeric columns are selected. That's reasonable because our function should only operate on numbers. The selection is defused and injected into the `across()` call using `{{ }}`. It uses a `cols` argument instead of the dots. This is [preferable](https://tidyselect.r-lib.org/articles/tidyselect.html#selections-as-dots-or-as-named-arguments) in functions that have a main purpose other than selection itself --- in this case, multiplying column values.
+
+All works fine so far. But suppose the user makes a mistake. They take the complement (`!`) of all columns that end on `"Length"`:
+
+```{r}
+iris |> 
+    multiply_df(!ends_with("Length"))
+```
+
+Well, that's unfortunate. `"Species"` is a factor column, not a numeric one,[^1] so its values are not supposed to be multiplied by any number. Indeed, it only ever makes sense for `multiply_df()` to operate on numeric columns.
+
+[^1]: You might know that factors are [integers under the hood](https://adv-r.hadley.nz/vectors-chap.html#factors). Yet they don't count as numeric. This is not specific to tidyselect: `is.numeric(iris$Species)` and even `is.integer(iris$Species)` return `FALSE`. Only `is.factor(iris$Species)` returns `TRUE`. For all intents and purposes, factors can be treated as if they were their own base type. This is different from data frames, which are [lists under the hood](https://adv-r.hadley.nz/vectors-chap.html#tibble), and `is.list(iris)` returns `TRUE`.
+
+Specifying the selection as `!ends_with("Length") & where(is.numeric)` would solve the issue, but I think this puts too much of an onus on the user. Adding selection criteria beyond `where(is.numeric)` will be a typical use case of the `cols` argument. It would be burdensome to keep adding this boilerplate code on top of every meaningful selection. It would also be risky because not adding `where(is.numeric)` would lead to bugs like above.
+
+What's more, the two elements of this selection are very different: There any many possible reasons to write selections like `!ends_with("Length")`, all depending on the individual use case. By contrast, `where(is.numeric)` is much more fundamental to the whole purpose of `multiply_df()`.
+
+## Attempt 2: hard-coded specifications
+
+Let's tweak the function a little. It should always test for `where(is.numeric)`, so instead of setting this selection up as the default of `cols`, we hard-code it within the `across()` call. It's now an additional test the columns need to pass in order to be selected --- on top of any expressions the user might specify via `cols` to restrict selection even further.
+
+By default, however, there are no restrictions beyond being numeric. That's ensured by the new `cols = everything()` default. If the user doesn't specify `cols`, the function will operate on all columns that are not screened out by `where(is.numeric)`; i.e., all numeric columns. More on that below.
+
+```{r}
+multiply_df <- function(data, cols = everything(), by = 1000) {
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ cols }} & where(is.numeric),
+    .fns  = function(x) x * by
+  ))
+}
+
+iris |> 
+    multiply_df(!ends_with("Length"))
+
+iris |> 
+    multiply_df()
+```
+
+This keeps the function from forcing multiplication upon non-numeric columns. Yet hard-coding a selection is not very elegant. It might make sense in a simple example such as this one, but more complex functions will require more nuanced decisions about column selection. I will explore such a case further below.
+
+## Attempt 3: default guardrails
+
+From now on, we will steer a middle course. Instead of either hard-coding selection or leaving it overly flexible, we add a Boolean argument with a default that ensures the function will only operate on numeric columns --- unless the user overrides the default. (Again, it's unclear when this would be useful with `multiply_df()`, but think of this simple case as a placeholder for more difficult ones.)
+
+This latest version of the function has some features that might bewilder you. It's worth taking a detour here and discuss them in detail. That's what the next section does.
+
+```{r}
+multiply_df <- function(data, cols = everything(), by = 1000,
+                        check_numeric = TRUE) {
+  if (check_numeric) {
+    selection2 <- rlang::expr(where(is.numeric))
+  } else {
+    selection2 <- rlang::expr(everything())
+  }
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ cols }} & !!selection2,
+    .fns  = function(x) x * by
+  ))
+}
+```
+
+The default works fine:
+
+```{r}
+iris |> 
+    multiply_df(!ends_with("Length"))
+
+```
+
+Overriding the default leads to the same issue as before:
+
+```{r}
+iris |> 
+    multiply_df(!ends_with("Length"), check_numeric = FALSE)
+```
+
+## Identities and guardrails
+
+All tidyselect operators have *identity elements*. An identity element, or identity for short, is an expression that doesn't make a difference when combined with other expressions using some specific operator. We saw above that `where(is.numeric) & everything()` had the same effect as `where(is.numeric)`. Adding `everything()` with the `&` operator didn't have any impact!
+
+If this seems complicated, think of mathematics where identity can be very simple: $0$ is the identity of addition, i.e., $x + 0 = x$ for all real $x$. Likewise, $1$ is the identity of multiplication; $1x = x$. You can see why these numbers are also called *neutral elements*: Throwing them into the equation with their respective operators doesn't change the result either way.
+
+Let's bring this closer to home. We can think of some identities in base R, each for one specific operation:
+
+-   `paste0("abc", "")` returns `"abc"`.
+
+-   `c(5, NULL)` returns `5`. Likewise with all other atomic vectors.
+
+-   Unsurprisingly, `0 + 5` and `1 * 5` both return `5`.
+
+What might be more surprising is that the same principle can sometimes be useful when wrapping tidyselect functions, such as `across()`. The basic idea is that some condition may change which columns should be selected. This change to the user-supplied selection --- or *guardrail* --- unfolds through an additional tidyselect expression. In such a context, an identity provides a safe fallback to which the additional expression will default if the condition is not met. This makes sure the selection is not changed when it's not meant to be.
+
+We can distinguish two use cases:
+
+-   **Guardrails enabled by default.** The default protects the user from overly flexible selection (i.e., too broad or too narrow) by modifying the selection in a way that is characteristic of the specific use case of the wrapper function. If the user overrides the default, the guardrails are replaced by the identity. An example is the last version of `multiply_df()` above.
+
+-   **Guardrails disabled by default.** In this case, there is usually no need to modify the selection. The identity is the default here. Sometimes, however, the user may choose to restrict or expand the selection in some way that has a special relation to the use case of the wrapper function. Overriding the Boolean default is a handy way of adding these guardrails, especially if manually modifying the selection in the desired way would be difficult, bothersome, or both. An example is `restore_simple()`, discussed below.
+
+Each of these two can be subdivided into one use case that further restricts selection and one that further expands it. The `&` and `|` operators are emblematic for this, but other operators can expand or restrict selection, as well.
+
+|                                    |                                                                                                                                         |                                                                                                                                     |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+|                                    | **Restrict selection**                                                                                                                  | **Expand selection**                                                                                                                |
+| **Guardrails enabled by default**  | Certain columns should not normally be selected, even if the user-supplied tidyselect specification (or its default) would include them | Certain columns should normally be selected, even if the user-supplied tidyselect specification (or its default) would exclude them |
+| **Guardrails disabled by default** | The user chooses to add necessary conditions so that columns are selected more strictly                                                 | The user chooses to add sufficient conditions so that columns are selected more permissively                                        |
+
+Here is an overview of tidyselect's unique set of identities:
+
+| Guardrails use case                               | Tidyselect operator | Identity elements                                                                |
+|---------------------------------------------------|---------------------|----------------------------------------------------------------------------------|
+| `NA`                                              | `:`                 | Element on the other side (either location index or bare column name)            |
+| Restrict selection by adding necessary conditions | `&`                 | `everything()`, `!NULL`; `!where(is.null))`; `!where(isTRUE)`; `!where(isFALSE)` |
+| Expand selection by adding sufficient conditions  | `|`                 | `!everything()`; `NULL`; `where(is.null))`; `where(isTRUE)`; `where(isFALSE)`    |
+| `NA`                                              | `!`                 | `!everything()`; `NULL`; `where(is.null))`; `where(isTRUE)`; `where(isFALSE)`    |
+| `NA`                                              | `c()`               | `!everything()`; `NULL`; `where(is.null))`; `where(isTRUE)`; `where(isFALSE)`    |
+
+Note that the guardrails override their identity element if and only if the condition in question is met. In the following, I will only discuss the first identity of each operator except `:`, i.e., `everything()` and `!everything()`. That's because `everything()` is designated to be part of tidyselect's API but the other identities aren't.
+
+## Messages
+
+Guardrails should never influence selection silently. I wrote a function that informs the user if one or more columns were excluded from selection by the guardrails. It's used within the functions below but hidden here:
+
+**TO DO: CALL THE BELOW FUNCTION IN THE CASE STUDY FUNCTIONS (FURTHER BELOW). THINK OF WHICH CONDITIONS SHOULD TRIGGER THIS. LOOK AT THE TWO scrutiny FUNCTIONS FOR INSPIRATION. THEN, DESCRIBE THIS PROCESS IN THE WORKFLOW SECTION. MAYBE ALSO WRITE AN `inform_guardrails_expansion()` FUNCTION; THEN APPLY IT ACCORDINGLY.**
+
+```{r}
+#| code-fold: true
+
+# Note: `names_cols_not_selected` and
+# `name_crucial_check` are required arguments.
+# `name_crucial_check` should be the name of
+# the `check_*` argument that excluded the columns
+# named in `names_cols_not_selected`.
+# All other arguments default to a generic message.
+# Customize them to make the message more specific.
+
+inform_guardrails_restriction <- function(names_cols_not_selected,
+                                          name_crucial_check,
+                                          msg_exclusion = paste(c("was", "were"), "not selected"),
+                                          msg_reason = paste0("fulfill the criteria of `", name_crucial_check, "`"),
+                                          msg_it_they = c("It doesn't", "They don't")) {
+    if (length(names_cols_not_selected) == 1L) {
+        msg_col_cols <- "1 column"
+        msg_it_they <- msg_it_they[1L]
+        msg_exclusion <- msg_exclusion[1L]
+    }
+    else {
+        msg_col_cols <- paste(length(names_cols_not_selected), "columns")
+        msg_it_they <- msg_it_they[max(1L, length(msg_it_they))]
+        msg_exclusion <- msg_exclusion[max(1L, length(msg_exclusion))]
+    }
+    names_cols_not_selected <- paste0("`", names_cols_not_selected, "`")
+    cli::cli_inform(c("i" = "{msg_col_cols} {msg_exclusion}: {names_cols_not_selected}.", 
+        "i" = "{msg_it_they} {msg_reason}."))
+}
+```
+
+## Workflow
+
+Follow these steps to make practical use of guardrails in a tidyselect-wrapping function. Examples for each step are given in the next section.
+
+1.  Give your function a `cols` argument with a selection like `everything()` or `where(is.numeric)` as its default.
+2.  Check for the condition that should be able to modify column selection. Think of a selection that fits your use case, defuse it with `rlang::expr()`, and set up the result to be assigned to a new variable, `selection2`, if the condition is met.
+3.  Choose a tidyselect operator that fits your use case (see table above). Wrap its identity element into `rlang::expr()` and set up the result to be assigned to `selection2` if the condition is *not* met.
+4.  Call the tidyselect function of your choice. Within the call, inject the two selections like `{{ cols }} OPERATOR !!selection2`, using the operator chosen in step 3. If `selection2` is a list rather than a single expression, inject it with `!!!` rather than `!!`.
+
+Step 2 suggests `selection2` as a variable name because `cols` represents the first selection.
+
+In step 4, make sure to write `{{ cols }}`, not `!!cols`. Since `cols` is a function argument that you didn't defuse before step 4, `!!cols` would lead to an error:
+
+```{r, eval=FALSE}
+Error in local_error_context(dots = dots, .index = i, mask = mask) : 
+  promise already under evaluation: recursive default argument reference or earlier problems?
+```
+
+Conversely, for `selection2`, you should always use `!!` (or `!!!`), not `{{ }}`, because the embrace operator is [only suitable for function arguments](https://rlang.r-lib.org/reference/topic-embrace-non-args.html).
+
+## Case study: `restore_zeros_df()`
+
+As an example for optional guardrails that restrict selection, here is a simplified version of [`scrutiny::restore_zeros_df()`](https://github.com/lhdjung/scrutiny/blob/main/R/restore-zeros.R). The steps are numbered as in the workflow above.
+
+This function converts numeric columns to string and pads their values with trailing zeros after the decimal point.
+
+```{r}
+# 1. This function has a `cols` argument with a
+# tidyselect expression as its default:
+restore_simple <- function(data, cols = everything(),
+                           check_decimals = FALSE, width = NULL) {
+  
+  # 2. If desired by the user, create an additional selection criterion --
+  # at least one value per column must have at least one decimal place:
+  if (check_decimals) {
+    selection2 <- rlang::expr(
+      where(function(x) !all(scrutiny::decimal_places(x) == 0L))
+    )
+  } else {
+    # 3. Otherwise, the new variable is set up to be evaluated as 
+    # `everything()`, which is an identity element of the `&`
+    # operator in tidyselect:
+    selection2 <- rlang::expr(everything())
+  }
+  
+  # 4. We call `across()` within `mutate()` because we want
+  # to modify multiple columns. These are primarily selected
+  # via `cols`, which defaults to selecting all numeric
+  # columns. The role of `selection2` is to further restrict
+  # the selection if desired by the user. Therefore, we
+  # combine both variables with `&`:
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ cols }} & !!selection2,
+    .fns  = function(data_dummy) {
+      scrutiny::restore_zeros(x = data_dummy, width = width)
+    }
+  ))
+  
+}
+```
+
+Let's try it out. First, we add an integer column to `iris` for testing the `check_decimals` argument. We also remove `"Species"` for simplicity: With a non-numeric column left, the function would actually need guardrails that are enabled by default as well, just like in `multiply_df()`. Else, the `"Species"` factor will be coerced to `NA`s again! Although multiple guardrails are not impossible, we circumvent the issue by choosing to work with numeric columns only.
+
+```{r}
+iris_numeric <- iris |> 
+  mutate(id = 1:3, Species = NULL)
+```
+
+All numeric columns are selected by default:
+
+```{r}
+iris_numeric |> 
+  restore_simple(width = 3)
+```
+
+Regular user-supplied selections also work:
+
+```{r}
+iris_numeric |> 
+  restore_simple(cols = contains("i"), width = 3)
+```
+
+Here, `id` is excluded because setting `check_decimals` to `TRUE` leads to `selection2` becoming the guardrail that ultimately returns `FALSE` for `id`:
+
+```{r}
+iris_numeric |> 
+  restore_simple(cols = contains("i"), check_decimals = TRUE, width = 3)
+```
+
+Note that `restore_simple()` is not perfect. By default, for example, it doesn't operate on numbers stored in string columns. [`scrutiny::restore_zeros_df()`](https://github.com/lhdjung/scrutiny/blob/main/R/restore-zeros.R) has a more judicious default that checks whether a column is numeric or otherwise coercible to numeric.
+
+## When should I use this?
+
+The guardrails pattern has some downsides. First off, it compromises the tidyselect API. Even if the user's selection says `everything()`, the function is no longer guaranteed to operate on all columns. Guardrails effectively split the selection between two or more parameters, and it's up to the user to keep track of them.
+
+This, in turn, puts an onus on the developer to handle questions of guardrails with care. Here are some recommendations in descending order of heavy-handedness:
+
+-   Only enable guardrails by default if the default is essential to the purpose of your function. For example, arithmetic operations as in `multiply_df()` only make sense with numeric(-like) columns, so a default guardrail might be sensible.
+
+-   If a selection is sensible but not essential --- i.e., a matter of recommendation ---, and it would be hard or tedious for the user to manually tweak the selection to the same effect, implement it as a guardrail that is disabled by default. An example is `restore_simple()`.
+
+-   Finally, if the user can perform every sensible selection as straightforwardly as in `where(is.numeric)`, don't use any guardrails at all.
+
+Guardrails enabled by default should always be documented together with the `cols` argument, so that the user invariably stumbles upon them when learning about `cols`. This makes sure users are aware that selection is not controlled by `cols` alone. For example, here are the respective arguments from [`scrutiny::split_by_parens()`](https://lhdjung.github.io/scrutiny/reference/split_by_parens.html):
+
+> **cols**
+>
+> Select columns from `data` using [tidyselect](https://tidyselect.r-lib.org/reference/language.html). Default is `everything()`, which selects all columns, but by default, they still need to pass `check_sep`.
+>
+> **check_sep**
+>
+> Boolean. If `TRUE` (the default), columns are skipped if they don't contain the `sep` elements.
+
+If guardrails are disabled by default, tweak the wording slightly. Here is a simplified rundown of the corresponding arguments in [`scrutiny::restore_zeros_df()`](https://lhdjung.github.io/scrutiny/reference/restore_zeros.html):
+
+> **cols**
+>
+> Select columns from `data` using [tidyselect](https://tidyselect.r-lib.org/reference/language.html). Default is `everything()`, which selects all columns unless `check_decimals` is set to `TRUE`.
+>
+> **check_decimals**
+>
+> Boolean. If set to `TRUE`, the function will skip columns where no values have any decimal places. Default is `FALSE`.
+
+All of this might create dependencies between arguments, thereby violating the [tidyverse design guide](https://design.tidyverse.org/args-independence.html). Guardrails do divide the selection into multiple arguments. However, the guide's notion of "dependencies between arguments" seems to require that "only certain combinations \[of argument specifications\] are permitted" for the function to work. This is not the case with guardrails: At worst, they will change column selection in an unforeseen way.
+
+It's much more likely that they will prevent this very problem by tailoring selection to a function's specific use case. They will exempt non-numeric values from arithmetic operations, or save strings from being split by substrings which they don't contain. Guardrails make life easier for the user.

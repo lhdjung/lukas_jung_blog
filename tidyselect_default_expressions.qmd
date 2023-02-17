@@ -1,0 +1,112 @@
+---
+title: "Programming with `dplyr::across()`, part I: Default expressions"
+---
+
+This is helpful in the following situation: You are writing a function that wraps a tidyselect-using function, like `dplyr::across()`, and passes a tidyselect specification on to it. By default, however, your new function should select a set of columns that is different from the set of columns that the wrapped function would select by default.
+
+You don't like the existing default, so you need to write a new one yourself.
+
+```{r}
+library(dplyr) |> 
+  suppressPackageStartupMessages()
+
+# For better printing:
+iris <- iris |> 
+  as_tibble() |> 
+  slice(1:3)
+```
+
+You may already know that you can "tunnel" an argument into `across()` with `{{ }}`:
+
+```{r}
+by_1000 <- function(data, selector) {
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ selector }},
+    .fns  = \(x) x * 1000
+  ))
+}
+
+iris |> 
+  by_1000(1:2)
+```
+
+This works fine so far, but there is a catch. If the user doesn't specify the `selector` argument, `by_1000()` won't operate on any columns but simply return the tibble as is:
+
+```{r}
+iris |> 
+  by_1000()
+```
+
+Perhaps this is not the default you want. The function you apply, multiply by 1000, is an arithmetic operation. It might be best to select all numeric columns by default!
+
+How to do this? You need to check whether or not the user actually specified the `selector` argument. If not, reassign a custom default expression to `selector` using `rlang::expr()`. It should only be evaluated within `across()`, where this requires the injection operator, `!!`, instead of `{{ }}`:
+
+```{r}
+# THIS MAKES MUCH MORE SENSE NOW THAT `where(is.numeric)` IS A LITERAL, IMMEDIATE ARGUMENT DEFAULT; AND THIS NEGATES THE WHOLE PURPOSE OF THIS BLOGPOST! THE OTHER ONE, ABOUT NEUTRAL ELEMENTS, STILL MAKES SENSE, THOUGH. MAYBE INTEGRATE INE INTRODUCTORY STAPS FROM HERE INTO THERE, AND TURN IT INTO ONE COMPREHENSIVE BLOGPOST ABOUT PROGRAMMING WITH `across()`?
+multiply_df <- function(data, cols = where(is.numeric), by = 1000) {
+  # if (is.null(cols)) {
+  #   cols <- rlang::expr(where(is.numeric))
+  # }
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ cols }},
+    .fns  = \(x) x * by
+  ))
+}
+
+iris |> 
+  multiply_df()
+```
+
+## EVERYTHING BELOW IS PROBABLY WRONGHEADED BECAUSE IT INSISTS ON THE DOTS
+
+Calling `c()` works, but it's not very elegant here. It may also confuse users who are familiar with dots-based tidyselect functions like `dplyr::select()`. The more natural solution would be to use the dots instead of a `selector` argument. Within `across()`, this requires the unquote-splice operator, `!!!`, instead of `{{ }}`:
+
+```{r}
+multiply_df <- function(.data, ...) {
+  selector <- rlang::enexprs(...)
+  dplyr::mutate(.data, dplyr::across(
+    .cols = c(!!!selector),
+    .fns  = \(x) x * 1000
+  ))
+}
+
+iris |> 
+  multiply_df(1, 3)
+```
+
+This works fine so far, but there is a catch. If the user doesn't specify the dots, `multiply_df()` won't operate on any columns but simply return the tibble as is:
+
+```{r}
+iris |> 
+  multiply_df()
+
+# Same here:
+iris |> 
+  multiply_df()
+```
+
+Perhaps this is not the default you want. The function you apply, multiply by 1000, is an arithmetic operation. It might be best to select all numeric columns by default!
+
+How to do this? You need to check whether or not the user actually supplied anything via the dots. That is, test whether the `selector` variable that captured the dots has a length greater than 0. Reassign a custom default expression to `selector` using `list()`[^1] and `rlang::expr()`. It should only be evaluated within `across()`:
+
+[^1]: `rlang::expr()` is wrapped in `list()` because we use the `!!!` construct in `across()`: Since rlang 0.4.0, it should only take lists of expressions, not single objects. We need `!!!`, not `!!`, because the user might enter multiple arguments in the dots. `selector` will then be a list of length \> 0, and so won't be replaced by the default expression.
+
+```{r}
+multiply_df <- function(.data, ...) {
+  selector <- rlang::enexprs(...)
+  if (length(selector) == 0L) {
+    selector <- list(rlang::expr(where(is.numeric)))
+  }
+  dplyr::mutate(.data, dplyr::across(
+    .cols = c(!!!selector),
+    .fns  = \(x) x * 1000
+  ))
+}
+
+iris |> 
+  multiply_df()
+```
+
+#### (This used to be a footnote:)
+
+`rlang::expr()` is wrapped in `list()` because we use the `!!!` construct in `across()`: Since rlang 0.4.0, it should only take lists of expressions, not single objects. We need `!!!`, not `!!`, because the user might enter multiple arguments in the dots. `selector` will then be a list of length \> 0, and so won't be replaced by the default expression.

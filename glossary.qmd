@@ -1,0 +1,22 @@
+---
+title: "Glossary of R terms"
+---
+
+-   **Infix function** (or **infix operator**). Syntactically special function with exactly two formal arguments that can be called by placing the function's name in between the two arguments.
+-   **Data frame**. List with these properties:
+    -   All elements have the same length.
+    -   Each element is such that all of its own elements have the same type.
+    -   It inherits the S3 vector class `data.frame`.
+-   **Function factory**. Function that returns a function.
+-   **Function operator**. Function factory that takes one or more functions as arguments.
+-   **Atomic vector**. Vector with one of these types: integer, double, logical, character, complex, and raw.
+-   **List**. Non-atomic, non-expression vector.[^1]
+-   **Base R**. Two senses of this term abound:[^2]
+    -   In the narrow sense, base R is the base package.
+    -   In the broad sense, base R includes all packages of the R standard library, such as utils and stats.
+-   
+
+[^1]: Lists are sometimes called "generic vectors", notably in `?list`. However, this term is rarely used outside of the official R documentation.
+
+[^2]:
+    -   The distinction between the two senses of "base R" matters little in practice: the base package is always or almost always distributed along with the entire rest of the standard library. There are only two cases in which the distinction is important: 1. namespace conflicts, and 2. the development of a package that is meant to be submitted to CRAN or to another service that requires the namespaces of non-imported objects to be specified. The purpose of the requirements that lead to the second case is to prevent the first case. In either scenario, the solution is to specify the respective object's namespace, usually in the form `namespace::object`.

@@ -1,0 +1,26 @@
+---
+title: "Error in Quarto with tidy evaluation"
+---
+
+```{r}
+library(dplyr) |> 
+  suppressPackageStartupMessages()
+
+iris <- iris |> 
+  as_tibble() |> 
+  slice(1:3)
+
+mult_1000 <- function(data, cols = everything(), check_numeric = TRUE) {
+  if (check_numeric) {
+    selection2 <- rlang::expr(where(is.numeric))
+  } else {
+    selection2 <- rlang::expr(everything())
+  }
+  dplyr::mutate(data, dplyr::across(
+    .cols = {{ cols }} & !!selection2,
+    .fns  = function(x) x * 1000
+  ))
+}
+
+mult_1000(iris)
+```
