@@ -188,7 +188,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </header>
 
 <p>R is made for statistics. Surprisingly, though, there is no built-in R function to find the statistical mode: the most frequent value in a given distribution. (The base R function <code>mode()</code> has a very different use case.)</p>
-<p>Here are three functions to help you out.</p>
+<p>Here are three mode functions for you.</p>
 <p>All functions behave the same way if there is only one mode. If there are multiple modes, <code>mode_first()</code> only returns the one that appears first. <code>mode_all()</code> returns all modes. <code>mode_single()</code> returns <code>NA</code> in this case.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>mode_first <span class="ot">&lt;-</span> <span class="cf">function</span>(x, <span class="at">na.rm =</span> <span class="cn">FALSE</span>) {</span>
@@ -331,7 +331,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="implementation-notes" class="level2">
 <h2 class="anchored" data-anchor-id="implementation-notes">Implementation notes</h2>
-<p>The first two functions are adapted with modifications from <a href="https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441">this Stack Overflow answer</a>. They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from <code>base::mode()</code> and from each other. Note that <code>mode_single()</code> internally calls <code>mode_all()</code>, and <code>mode_all()</code> calls <code>mode_first()</code>.</p>
+<p>The first two functions are adapted with modifications from <a href="https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441">this Stack Overflow answer</a>. They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from <code>base::mode()</code> and from each other. Note that all three functions internally call the helper <code>adjudicate_mode_na()</code>.</p>
 <p>The <code>na.rm</code> argument follows similar R functions, such as <code>mean()</code> and <code>median()</code>. Still, it shouldn’t be set to <code>TRUE</code> without a strong rationale. Missing values have real meaning, and all these functions handle them accordingly — like <a href="https://adv-r.hadley.nz/vectors-chap.html#missing-values">base R operators do</a>.</p>
 <p>Click “Show code” to see step-by-step commented versions of all three functions.</p>
 <div class="cell">

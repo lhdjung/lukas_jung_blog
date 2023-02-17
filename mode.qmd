@@ -8,7 +8,7 @@ format:
 
 R is made for statistics. Surprisingly, though, there is no built-in R function to find the statistical mode: the most frequent value in a given distribution. (The base R function `mode()` has a very different use case.)
 
-Here are three functions to help you out.
+Here are three mode functions for you.
 
 All functions behave the same way if there is only one mode. If there are multiple modes, `mode_first()` only returns the one that appears first. `mode_all()` returns all modes. `mode_single()` returns `NA` in this case.
 
@@ -173,7 +173,7 @@ df
 
 ## Implementation notes
 
-The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that `mode_single()` internally calls `mode_all()`, and `mode_all()` calls `mode_first()`.
+The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that all three functions internally call the helper `adjudicate_mode_na()`.
 
 The `na.rm` argument follows similar R functions, such as `mean()` and `median()`. Still, it shouldn't be set to `TRUE` without a strong rationale. Missing values have real meaning, and all these functions handle them accordingly --- like [base R operators do](https://adv-r.hadley.nz/vectors-chap.html#missing-values).
 
