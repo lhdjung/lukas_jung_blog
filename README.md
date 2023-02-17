@@ -1,0 +1,3 @@
+# Lukas Jung's blog 👷‍♂️🚧
+
+This is the repo for my personal blog. It's currently in development...
