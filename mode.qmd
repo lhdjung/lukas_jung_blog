@@ -14,25 +14,31 @@ All functions behave the same way if there is only one mode. If there are multip
 
 ```{r}
 mode_first <- function(x, na.rm = FALSE) {
+  if (na.rm) {
+    x <- x[!is.na(x)]
+  }
   ux <- unique(x[!is.na(x)])
   mode1 <- ux[which.max(tabulate(match(x, ux)))]
-  if (na.rm || !any(is.na(x))) {
-    mode1
-  } else {
+  if (any(is.na(x))) {
     adjudicate_mode_na(x, ux, mode1, TRUE)
+  } else {
+    mode1
   }
 }
 
 mode_all <- function(x, na.rm = FALSE) {
+  if (na.rm) {
+    x <- x[!is.na(x)]
+  }
   ux <- unique(x[!is.na(x)])
   tab <- tabulate(match(x, ux))
   modes <- ux[tab == max(tab)]
   if (length(modes) == 1L) {
-    adjudicate_mode_na(x, ux, modes, TRUE)
-  } else if (na.rm || !any(is.na(x))) {
-    modes
-  } else {
+    adjudicate_mode_na(x, ux, modes, FALSE)
+  } else if (any(is.na(x))) {
     methods::as(NA, typeof(x))
+  } else {
+    modes
   }
 }
 
@@ -48,7 +54,7 @@ mode_single <- function(x, na.rm = FALSE) {
   }
 }
 
-# Helper function; don't call directly:
+# Helper used in all functions above; don't call directly:
 adjudicate_mode_na <- function(x, ux, mode1, allow_tie) {
   mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
   count_mode1 <- length(x[x == mode1])
