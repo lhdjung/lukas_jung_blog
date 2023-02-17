@@ -199,15 +199,16 @@ mode_first <- function(x, na.rm = FALSE) {
   # because the user chose to ignore them (`na.rm = TRUE`)
   # or because there are no `NA`s to begin with:
   if (na.rm || !any(is.na(x))) {
-    return(mode1)
-  }
+    mode1
+  } else {
   # At this point, we know that one or more
   # values are missing. We call a helper function,
   # documented further below, that adjudicates
   # whether or not it's still possible to determine
   # the mode. If so, it returns the mode; if not,
   # it returns `NA`:
-  adjudicate_mode_na(x, ux, mode1)
+    adjudicate_mode_na(x, ux, mode1, TRUE)
+  }
 }
 
 mode_all <- function(x, na.rm = FALSE) {
@@ -227,7 +228,7 @@ mode_all <- function(x, na.rm = FALSE) {
   # described in `mode_first()`, so we call
   # the same `NA` helper as that function:
   if (length(modes) == 1L) {
-    adjudicate_mode_na(x, ux, modes)
+    adjudicate_mode_na(x, ux, modes, TRUE)
     # Multimodal distributions without `NA`s
     # have a clearly determined set of modes.
     # If they do have `NA`s, the user can
@@ -246,23 +247,36 @@ mode_all <- function(x, na.rm = FALSE) {
 }
 
 mode_single <- function(x, na.rm = FALSE) {
+  # Unlike the functions above, this
+  # one requires manual `NA` removal:
+  if (na.rm) {
+    x <- x[!is.na(x)]
+  }
   # We also need to check the number of
   # modes here, so we call `mode_all()`:
-  modes <- mode_all(x = x, na.rm = na.rm)
+  mode1 <- mode_all(x, na.rm)
   # As the name says, if the distribution
-  # has a single mode, that value is returned.
-  # Multimodal distributions lead to `NA`.
+  # has a single mode (that passes the
+  # `NA` test), that value is returned.
+  # `NA` testing without allowing for ties
+  # between the `mode1` count and the sum
+  # of the `mode2` and `NA` counts
+  # (`FALSE` at the end) is necessary here
+  # because we need to make sure that
+  # `mode1` is really the only mode, even
+  # if all `NA`s stand in for `mode2`:
+  if (length(mode1) == 1L) {
+    adjudicate_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
+  # Multimodal distributions are always `NA`.
   # Some users prefer this stricter way of
   # estimating the mode, or they require it
   # for their specific use cases.
-  if (length(modes) == 1L) {
-    modes
   } else {
     methods::as(NA, typeof(x))
   }
 }
 
-adjudicate_mode_na <- function(x, ux, mode1) {
+adjudicate_mode_na <- function(x, ux, mode1, allow_tie) {
   # Some values might be missing. We need to check
   # whether there are so many missings that the most
   # frequent known value, `mode1`, might be less
@@ -275,10 +289,24 @@ adjudicate_mode_na <- function(x, ux, mode1) {
   mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
   # Count instances of the three relevant available
   # values -- most and second-most frequent known
-  # values as well as missing values:
+  # values plus missing values:
   count_mode1 <- length(x[x == mode1])
-  count_mode2 <- length(x[x == mode2])
-  count_na <- length(x[is.na(x)])
+  count_mode2_na <- length(x[x == mode2]) + length(x[is.na(x)])
+  # Two of the functions above only require `mode1`
+  # to be at least as frequent as the sum of the
+  # other two counts (see below). However,
+  # `mode_single()` is more strict because
+  # it is meant to rule out that the true count
+  # of `mode2` is just as high as that of `mode1`.
+  # If this is even possible, `mode_single()`
+  # needs to return `NA` because it only
+  # allows for a single mode.
+  if (allow_tie) {
+    mode1_frequent_enough <- count_mode1 >= count_mode2_na
+  } else {
+    mode1_frequent_enough <- count_mode1 > count_mode2_na
+  }
+  # (Assuming `allow_tie = TRUE`:)
   # `mode1` is the true mode only if it's
   # at least as frequent as the sum of the
   # other two counts. Otherwise, if all the
@@ -292,7 +320,7 @@ adjudicate_mode_na <- function(x, ux, mode1) {
   # `count_mode1` is not large enough, the
   # function returns `NA` (coerced to the
   # same type as the input, `x`):
-  if (count_mode1 >= count_mode2 + count_na) {
+  if (mode1_frequent_enough) {
     mode1
   } else {
     methods::as(NA, typeof(x))
