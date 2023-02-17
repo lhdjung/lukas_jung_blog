@@ -17,16 +17,9 @@ mode_first <- function(x, na.rm = FALSE) {
   ux <- unique(x[!is.na(x)])
   mode1 <- ux[which.max(tabulate(match(x, ux)))]
   if (na.rm || !any(is.na(x))) {
-    return(mode1)
-  }
-  mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
-  count_mode1 <- length(x[x == mode1])
-  count_mode2 <- length(x[x == mode2])
-  count_na <- length(x[is.na(x)])
-  if (count_mode1 >= count_mode2 + count_na) {
     mode1
   } else {
-    methods::as(NA, typeof(x))
+    adjudicate_mode_na(x, ux, mode1)
   }
 }
 
@@ -35,7 +28,7 @@ mode_all <- function(x, na.rm = FALSE) {
   tab <- tabulate(match(x, ux))
   modes <- ux[tab == max(tab)]
   if (length(modes) == 1L) {
-    mode_first(x = x, na.rm = na.rm)
+    adjudicate_mode_na(x, ux, modes)
   } else if (na.rm || !any(is.na(x))) {
     modes
   } else {
@@ -51,13 +44,9 @@ mode_single <- function(x, na.rm = FALSE) {
     methods::as(NA, typeof(x))
   }
 }
-```
 
-Alternative implementation, with a helper to avoid redundancies:
-
-```{r}
-# Helper:
-helper_mode_or_na <- function(x, ux, mode1) {
+# Helper function; don't call directly:
+adjudicate_mode_na <- function(x, ux, mode1) {
   mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
   count_mode1 <- length(x[x == mode1])
   count_mode2 <- length(x[x == mode2])
@@ -68,39 +57,6 @@ helper_mode_or_na <- function(x, ux, mode1) {
     methods::as(NA, typeof(x))
   }
 }
-
-mode_first2 <- function(x, na.rm = FALSE) {
-  ux <- unique(x[!is.na(x)])
-  mode1 <- ux[which.max(tabulate(match(x, ux)))]
-  if (na.rm || !any(is.na(x))) {
-    mode1
-  } else {
-    helper_mode_or_na(x, ux, mode1)
-  }
-}
-
-mode_all2 <- function(x, na.rm = FALSE) {
-  ux <- unique(x[!is.na(x)])
-  tab <- tabulate(match(x, ux))
-  modes <- ux[tab == max(tab)]
-  if (length(modes) == 1L) {
-    helper_mode_or_na(x, ux, modes)
-  } else if (na.rm || !any(is.na(x))) {
-    modes
-  } else {
-    methods::as(NA, typeof(x))
-  }
-}
-
-mode_single2 <- function(x, na.rm = FALSE) {
-  modes <- mode_all(x = x, na.rm = na.rm)
-  if (length(modes) == 1L) {
-    modes
-  } else {
-    methods::as(NA, typeof(x))
-  }
-}
-
 ```
 
 At their core, these functions are based on a [Stack Overflow answer by Ken Williams](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). Go to *Implementation notes* below for details.
@@ -205,92 +161,6 @@ df <- tibble::tibble(
 df
 ```
 
-```{r eval=FALSE, include=FALSE}
-
-# BENCHMARKING
-
-# `mode_first()`
-comp_mode_first_x1 <- bench::mark(
-  old =  mode_first(x1),
-  new = mode_first2(x1),
-  iterations = 20000
-)
-comp_mode_first_x2 <- bench::mark(
-  old =  mode_first(x2),
-  new = mode_first2(x2),
-  iterations = 20000
-)
-comp_mode_first_x3 <- bench::mark(
-  old =  mode_first(x3),
-  new = mode_first2(x3),
-  iterations = 20000
-)
-comp_mode_first_x4 <- bench::mark(
-  old =  mode_first(x4),
-  new = mode_first2(x4),
-  iterations = 20000
-)
-comp_mode_first_x5 <- bench::mark(
-  old =  mode_first(x5),
-  new = mode_first2(x5),
-  iterations = 20000
-)
-
-# `mode_all()`
-comp_mode_all_x1 <- bench::mark(
-  old =  mode_all(x1),
-  new = mode_all2(x1),
-  iterations = 20000
-)
-comp_mode_all_x2 <- bench::mark(
-  old =  mode_all(x2),
-  new = mode_all2(x2),
-  iterations = 20000
-)
-comp_mode_all_x3 <- bench::mark(
-  old =  mode_all(x3),
-  new = mode_all2(x3),
-  iterations = 20000
-)
-comp_mode_all_x4 <- bench::mark(
-  old =  mode_all(x4),
-  new = mode_all2(x4),
-  iterations = 20000
-)
-comp_mode_all_x5 <- bench::mark(
-  old =  mode_all(x5),
-  new = mode_all2(x5),
-  iterations = 20000
-)
-
-# `mode_single()`
-comp_mode_single_x1 <- bench::mark(
-  old =  mode_all(x1),
-  new = mode_all2(x1),
-  iterations = 20000
-)
-comp_mode_single_x2 <- bench::mark(
-  old =  mode_all(x2),
-  new = mode_all2(x2),
-  iterations = 20000
-)
-comp_mode_single_x3 <- bench::mark(
-  old =  mode_all(x3),
-  new = mode_all2(x3),
-  iterations = 20000
-)
-comp_mode_single_x4 <- bench::mark(
-  old =  mode_all(x4),
-  new = mode_all2(x4),
-  iterations = 20000
-)
-comp_mode_single_x5 <- bench::mark(
-  old =  mode_all(x5),
-  new = mode_all2(x5),
-  iterations = 20000
-)
-```
-
 ## Implementation notes
 
 The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that `mode_single()` internally calls `mode_all()`, and `mode_all()` calls `mode_first()`.
@@ -312,8 +182,8 @@ mode_first <- function(x, na.rm = FALSE) {
   # value (the possible mode) and subset this
   # value:
   mode1 <- ux[which.max(tabulate(match(x, ux)))]
-  # The present implementation only differs from
-  # the linked original function in terms of `NA` handling.
+  # The present implementation only differs from the
+  # linked original function in terms of `NA` handling.
   # Therefore, it returns `mode1` just like that function
   # does if missing values are not an issue -- either
   # because the user chose to ignore them (`na.rm = TRUE`)
@@ -321,7 +191,69 @@ mode_first <- function(x, na.rm = FALSE) {
   if (na.rm || !any(is.na(x))) {
     return(mode1)
   }
-  # One or more values are missing. We need to check
+  # At this point, we know that one or more
+  # values are missing. We call a helper function,
+  # documented further below, that adjudicates
+  # whether or not it's still possible to determine
+  # the mode. If so, it returns the mode; if not,
+  # it returns `NA`:
+  adjudicate_mode_na(x, ux, mode1)
+}
+
+mode_all <- function(x, na.rm = FALSE) {
+  # As above, we first determine the unique
+  # known values of `x`. `NA`s are ignored
+  # at this point because they will receive
+  # special treatment later on.
+  ux <- unique(x[!is.na(x)])
+  # Count the instances of each known value:
+  tab <- tabulate(match(x, ux))
+  # Subset the vector of unique known values
+  # at the indices corresponding to the
+  # most frequent known values:
+  modes <- ux[tab == max(tab)]
+  # A seemingly unimodal distribution is
+  # subject to the `NA`-related caveats
+  # described in `mode_first()`, so we call
+  # the same `NA` helper as that function:
+  if (length(modes) == 1L) {
+    adjudicate_mode_na(x, ux, modes)
+    # Multimodal distributions without `NA`s
+    # have a clearly determined set of modes.
+    # If they do have `NA`s, the user can
+    # (but probably shouldn't) ignore the
+    # issue by setting `na.rm` to `TRUE`:
+  } else if (na.rm || !any(is.na(x))) {
+    modes
+    # Any missing value could mask any of the
+    # known values tied for most frequent --
+    # and break the tie. This makes it
+    # impossible to determine the true set
+    # of modes, so the function returns `NA`:
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+mode_single <- function(x, na.rm = FALSE) {
+  # We also need to check the number of
+  # modes here, so we call `mode_all()`:
+  modes <- mode_all(x = x, na.rm = na.rm)
+  # As the name says, if the distribution
+  # has a single mode, that value is returned.
+  # Multimodal distributions lead to `NA`.
+  # Some users prefer this stricter way of
+  # estimating the mode, or they require it
+  # for their specific use cases.
+  if (length(modes) == 1L) {
+    modes
+  } else {
+    methods::as(NA, typeof(x))
+  }
+}
+
+adjudicate_mode_na <- function(x, ux, mode1) {
+  # Some values might be missing. We need to check
   # whether there are so many missings that the most
   # frequent known value, `mode1`, might be less
   # frequent than the second-most frequent one (or
@@ -352,58 +284,6 @@ mode_first <- function(x, na.rm = FALSE) {
   # same type as the input, `x`):
   if (count_mode1 >= count_mode2 + count_na) {
     mode1
-  } else {
-    methods::as(NA, typeof(x))
-  }
-}
-
-mode_all <- function(x, na.rm = FALSE) {
-  # As above, we first determine the unique
-  # known values of `x`. `NA`s are ignored
-  # at this point because they will receive
-  # special treatment later on.
-  ux <- unique(x[!is.na(x)])
-  # Count the instances of each known value:
-  tab <- tabulate(match(x, ux))
-  # Subset the vector of unique known values
-  # at the indices corresponding to the
-  # most frequent known values:
-  modes <- ux[tab == max(tab)]
-  # A seemingly unimodal distribution is
-  # subject to the `NA`-related caveats
-  # described in `mode_first()`, so `x`
-  # is passed to this function:
-  if (length(modes) == 1L) {
-    mode_first(x = x, na.rm = na.rm)
-    # Multimodal distributions without `NA`s
-    # have a clearly determined set of modes.
-    # If they do have `NA`s, the user can
-    # (but probably shouldn't) ignore the
-    # issue by setting `na.rm` to `TRUE`:
-  } else if (na.rm || !any(is.na(x))) {
-    modes
-    # Any missing value could mask any of the
-    # known values tied for most frequent --
-    # and break the tie. This makes it
-    # impossible to determine the true set
-    # of modes, so the function returns `NA`:
-  } else {
-    methods::as(NA, typeof(x))
-  }
-}
-
-mode_single <- function(x, na.rm = FALSE) {
-  # We also need to check the number of
-  # modes here, so we call `mode_all()`:
-  modes <- mode_all(x = x, na.rm = na.rm)
-  # As the name says, if the distribution
-  # has a single mode, that value is returned.
-  # Multimodal distributions lead to `NA`.
-  # Some users prefer this stricter way of
-  # estimating the mode, or they require it
-  # for their specific use cases.
-  if (length(modes) == 1L) {
-    modes
   } else {
     methods::as(NA, typeof(x))
   }
