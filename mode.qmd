@@ -13,7 +13,7 @@ Here are three mode functions for you.
 All functions behave the same way if there is only one mode. If there are multiple modes, `mode_first()` only returns the one that appears first. `mode_all()` returns all modes. `mode_single()` returns `NA` in this case.
 
 ```{r}
-mode_first <- function(x, na.rm = FALSE, first_obvious = TRUE) {
+mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   if (na.rm) {
     x <- x[!is.na(x)]
   }
@@ -21,7 +21,7 @@ mode_first <- function(x, na.rm = FALSE, first_obvious = TRUE) {
   mode1 <- ux[which.max(tabulate(match(x, ux)))]
   if (any(is.na(x)) && is.na(adjudicate_mode_na(x, ux, mode1, TRUE))) {
     methods::as(NA, typeof(x))
-  } else if (first_obvious) {
+  } else if (first_known) {
     mode1
   } else {
     mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
@@ -116,7 +116,7 @@ mode_first(x3)
 
 Even if the `NA` stands in for `7`, there will only be three instances of `7` but four instances of `8`. The mode is `8`, independent of the true value behind `NA`.
 
-The `first_obvious` argument will rarely be relevant. It's discussed in *Implementation notes*.
+The `first_known` argument will rarely be relevant. It's discussed in *Implementation notes*.
 
 ## Get all modes with `mode_all()`
 
@@ -197,7 +197,7 @@ Click "Show code" to see step-by-step commented versions of all three functions.
 ```{r eval=FALSE}
 #| code-fold: true
 
-mode_first <- function(x, na.rm = FALSE, first_obvious = TRUE) {
+mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   # Remove `NA`s if desired:
   if (na.rm) {
     x <- x[!is.na(x)]
@@ -224,19 +224,19 @@ mode_first <- function(x, na.rm = FALSE, first_obvious = TRUE) {
     methods::as(NA, typeof(x))
     # Although `mode_first()` is agnostic about other modes,
     # the mode it returns is the one that first appears
-    # *as a mode*. By default (`first_obvious = TRUE`),
+    # *as a mode*. By default (`first_known = TRUE`),
     # if a value might be a mode depending on true values
     # behind `NA`s but appears before the first `mode1`
     # value, the function still returns `mode1`.
-    # Set `first_obvious` to `FALSE` to make the function
+    # Set `first_known` to `FALSE` to make the function
     # return `NA` in such cases. The idea is that, strictly
     # speaking, the true first mode is unknown here.
-    # For example, `mode_first(c(2, 1, 1, NA))` is `1`
+    # For example, `mode_first(c(2, 1, 1, NA))` returns `1`
     # although `2` appears first. `2` might be another mode,
-    # but the first value that is obvious as a mode is `1`.
-    # `mode_first(c(2, 1, 1, NA), first_obvious = FALSE)`
+    # but the first value that is known to be a mode is `1`.
+    # `mode_first(c(2, 1, 1, NA), first_known = FALSE)`
     # returns `NA`.
-  } else if (first_obvious) {
+  } else if (first_known) {
     mode1
   } else {
     mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
