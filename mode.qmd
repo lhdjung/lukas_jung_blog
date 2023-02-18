@@ -187,7 +187,7 @@ df
 
 ## Implementation notes
 
-The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that all three functions internally call the helper `adjudicate_mode_na()`.
+The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that all three functions internally call the helper `adjudicate_mode_na()`. `mode_single()` also calls `mode_all()`.
 
 The `na.rm` argument follows similar R functions, such as `mean()` and `median()`. Still, it shouldn't be set to `TRUE` without a strong rationale. Missing values have real meaning, and all these functions handle them accordingly --- like [base R operators do](https://adv-r.hadley.nz/vectors-chap.html#missing-values).
 
