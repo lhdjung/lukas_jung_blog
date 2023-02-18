@@ -46,7 +46,7 @@ mode_single <- function(x, na.rm = FALSE) {
   if (na.rm) {
     x <- x[!is.na(x)]
   }
-  mode1 <- mode_all(x, na.rm)
+  mode1 <- mode_all(x, FALSE)
   if (length(mode1) == 1L) {
     adjudicate_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
   } else {
@@ -267,8 +267,11 @@ mode_single <- function(x, na.rm = FALSE) {
     x <- x[!is.na(x)]
   }
   # We need to check the number of
-  # modes here, so we call `mode_all()`:
-  mode1 <- mode_all(x, na.rm)
+  # modes here, so we call `mode_all()`.
+  # `na.rm` is `FALSE` here because, if
+  # the user set it to `TRUE`, missing
+  # values were removed already.
+  mode1 <- mode_all(x, FALSE)
   # As the name says, if the distribution
   # has a single mode (that passes the
   # `NA` test), that value is returned.
