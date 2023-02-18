@@ -20,16 +20,15 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   ux <- unique(x[!is.na(x)])
   mode1 <- ux[which.max(tabulate(match(x, ux)))]
   if (any(is.na(x)) && is.na(adjudicate_mode_na(x, ux, mode1, TRUE))) {
-    methods::as(NA, typeof(x))
+    return(methods::as(NA, typeof(x)))
   } else if (first_known) {
+    return(mode1)
+  }
+  mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
+  if (match(mode1, x) < match(mode2, x)) {
     mode1
   } else {
-    mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
-    if (match(mode1, x) < match(mode2, x)) {
-      mode1
-    } else {
-      methods::as(NA, typeof(x))
-    }
+    methods::as(NA, typeof(x))
   }
 }
 
@@ -92,7 +91,7 @@ x1 <- c(7, 8, 8, 9, 9, 9)
 mode_first(x1)
 ```
 
-But what if some values are missing? Think about what it means to look for the most frequent value in such a distribution. Maybe there are so many missings that it's impossible to tell which value is the most frequent one. For example:
+But what if some values are missing? Think about what it means to look for the most frequent value in such a distribution. Maybe there are so many missings that it's impossible to tell which value is the most frequent one:
 
 ```{r}
 x2 <- c(1, 1, 2, 2, 2, 2, NA, NA, NA, NA)
@@ -110,13 +109,13 @@ mode_first(x2, na.rm = TRUE)
 This distribution is different:
 
 ```{r}
-x3 <- c(7, 7, 8, 8, 8, 8, NA)
+x3 <- c(7, 7, 7, 7, 8, 8, NA)
 mode_first(x3)
 ```
 
-Even if the `NA` stands in for `7`, there will only be three instances of `7` but four instances of `8`. The mode is `8`, independent of the true value behind `NA`.
+Even if the `NA` stands in for `8`, there will only be three instances of `8` but four instances of `7`. The mode is `7`, independent of the true value behind `NA`.
 
-The `first_known` argument will rarely be relevant. It's discussed in *Implementation notes*.
+The `first_known` argument will rarely be relevant. It decides whether the function accepts the first value known to be a mode (`TRUE`, the default), or whether it returns `NA` if a value might be the first-appearing mode but that's unknown due to `NA`s. See *Implementation notes*.
 
 ## Get all modes with `mode_all()`
 
@@ -221,30 +220,29 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   # the mode. If so, the present function returns the mode;
   # if not, it returns `NA`.
   if (any(is.na(x)) && is.na(adjudicate_mode_na(x, ux, mode1, TRUE))) {
-    methods::as(NA, typeof(x))
-    # Although `mode_first()` is agnostic about other modes,
-    # the mode it returns is the one that first appears
-    # *as a mode*. By default (`first_known = TRUE`),
-    # if a value might be a mode depending on true values
-    # behind `NA`s but appears before the first `mode1`
-    # value, the function still returns `mode1`.
-    # Set `first_known` to `FALSE` to make the function
-    # return `NA` in such cases. The idea is that, strictly
-    # speaking, the true first mode is unknown here.
-    # For example, `mode_first(c(2, 1, 1, NA))` returns `1`
-    # although `2` appears first. `2` might be another mode,
-    # but the first value that is known to be a mode is `1`.
-    # `mode_first(c(2, 1, 1, NA), first_known = FALSE)`
-    # returns `NA`.
+    return(methods::as(NA, typeof(x)))
+  # Although `mode_first()` is agnostic about other modes,
+  # the mode it returns is the one that first appears
+  # *as a mode*. By default (`first_known = TRUE`),
+  # if a value might be a mode depending on true values
+  # behind `NA`s but appears before the first `mode1`
+  # value, the function still returns `mode1`.
+  # Set `first_known` to `FALSE` to make the function
+  # return `NA` in such cases. The idea is that, strictly
+  # speaking, the true first mode is unknown here.
+  # For example, `mode_first(c(2, 1, 1, NA))` returns `1`
+  # although `2` appears first. `2` might be another mode,
+  # but the first value that is known to be a mode is `1`.
+  # `mode_first(c(2, 1, 1, NA), first_known = FALSE)`
+  # returns `NA`.
   } else if (first_known) {
+    return(mode1)
+  }
+  mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
+  if (match(mode1, x) < match(mode2, x)) {
     mode1
   } else {
-    mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
-    if (match(mode1, x) < match(mode2, x)) {
-      mode1
-    } else {
-      methods::as(NA, typeof(x))
-    }
+    methods::as(NA, typeof(x))
   }
 }
 
