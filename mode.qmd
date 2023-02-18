@@ -189,7 +189,11 @@ Click "Show code" to see step-by-step commented versions of all three functions.
 #| code-fold: true
 
 mode_first <- function(x, na.rm = FALSE) {
-  # We first determine the unique known values
+  # Remove `NA`s if desired:
+  if (na.rm) {
+    x <- x[!is.na(x)]
+  }
+  # We determine the unique known values
   # of `x`. `NA`s are ignored at this point
   # because they will receive special treatment
   # later on.
@@ -201,24 +205,25 @@ mode_first <- function(x, na.rm = FALSE) {
   # The present implementation only differs from the
   # linked original function in terms of `NA` handling.
   # Therefore, it returns `mode1` just like that function
-  # does if missing values are not an issue -- either
-  # because the user chose to ignore them (`na.rm = TRUE`)
-  # or because there are no `NA`s to begin with:
-  if (na.rm || !any(is.na(x))) {
-    mode1
-  } else {
-  # At this point, we know that one or more
-  # values are missing. We call a helper function,
+  # does if there are no missing values. What if some
+  # values really are missing? We call a helper function,
   # documented further below, that adjudicates
   # whether or not it's still possible to determine
   # the mode. If so, it returns the mode; if not,
   # it returns `NA`:
+  if (any(is.na(x))) {
     adjudicate_mode_na(x, ux, mode1, TRUE)
+  } else {
+    mode1
   }
 }
 
 mode_all <- function(x, na.rm = FALSE) {
-  # As above, we first determine the unique
+  # Remove `NA`s if desired:
+  if (na.rm) {
+    x <- x[!is.na(x)]
+  }
+  # As above, we determine the unique
   # known values of `x`. `NA`s are ignored
   # at this point because they will receive
   # special treatment later on.
@@ -232,33 +237,36 @@ mode_all <- function(x, na.rm = FALSE) {
   # A seemingly unimodal distribution is
   # subject to the `NA`-related caveats
   # described in `mode_first()`, so we call
-  # the same `NA` helper as that function:
+  # the same `NA` helper as that function.
+  # However, we don't allow for ties between
+  # the `modes` count and the sum of the
+  # second-most-frequent value and `NA` counts
+  # (`FALSE` at the end) because such a tie
+  # means that the true set of modes is
+  # unknown -- all `NA`s might stand for
+  # the second-most frequent value, after all!
   if (length(modes) == 1L) {
-    adjudicate_mode_na(x, ux, modes, TRUE)
-    # Multimodal distributions without `NA`s
-    # have a clearly determined set of modes.
-    # If they do have `NA`s, the user can
-    # (but probably shouldn't) ignore the
-    # issue by setting `na.rm` to `TRUE`:
-  } else if (na.rm || !any(is.na(x))) {
-    modes
+    adjudicate_mode_na(x, ux, modes, FALSE)
     # Any missing value could mask any of the
     # known values tied for most frequent --
     # and break the tie. This makes it
     # impossible to determine the true set
     # of modes, so the function returns `NA`:
-  } else {
+  } else if (any(is.na(x))) {
     methods::as(NA, typeof(x))
+    # Multimodal distributions without `NA`s
+    # have a clearly determined set of modes:
+  } else {
+    modes
   }
 }
 
 mode_single <- function(x, na.rm = FALSE) {
-  # Unlike the functions above, this
-  # one requires manual `NA` removal:
+  # Remove `NA`s if desired:
   if (na.rm) {
     x <- x[!is.na(x)]
   }
-  # We also need to check the number of
+  # We need to check the number of
   # modes here, so we call `mode_all()`:
   mode1 <- mode_all(x, na.rm)
   # As the name says, if the distribution
@@ -270,7 +278,9 @@ mode_single <- function(x, na.rm = FALSE) {
   # (`FALSE` at the end) is necessary here
   # because we need to make sure that
   # `mode1` is really the only mode, even
-  # if all `NA`s stand in for `mode2`:
+  # if all `NA`s stand in for `mode2`
+  # (the latter is computed within
+  # `adjudicate_mode_na()`):
   if (length(mode1) == 1L) {
     adjudicate_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
   # Multimodal distributions are always `NA`.
@@ -298,15 +308,20 @@ adjudicate_mode_na <- function(x, ux, mode1, allow_tie) {
   # values plus missing values:
   count_mode1 <- length(x[x == mode1])
   count_mode2_na <- length(x[x == mode2]) + length(x[is.na(x)])
-  # Two of the functions above only require `mode1`
-  # to be at least as frequent as the sum of the
-  # other two counts (see below). However,
-  # `mode_single()` is more strict because
-  # it is meant to rule out that the true count
-  # of `mode2` is just as high as that of `mode1`.
-  # If this is even possible, `mode_single()`
-  # needs to return `NA` because it only
-  # allows for a single mode.
+  # `mode_first()` only require `mode1` to be
+  # at least as frequent as the sum of the
+  # other two counts. That is because it is
+  # only interested in getting the first mode,
+  # whether or not there are other modes
+  # beyond that. However, `mode_all()` and
+  # `mode_single()` are more strict because
+  # they are meant to rule out that the true
+  # count of `mode2` is just as high as that
+  # of `mode1`. If this is even possible,
+  # these functions need to return `NA` --
+  # `mode_all()` because it needs to be sure
+  # about the set of modes, and `mode_single()`
+  # because it only allows for one mode.
   if (allow_tie) {
     mode1_frequent_enough <- count_mode1 >= count_mode2_na
   } else {
