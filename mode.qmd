@@ -19,7 +19,7 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   }
   ux <- unique(x[!is.na(x)])
   mode1 <- ux[which.max(tabulate(match(x, ux)))]
-  if (any(is.na(x)) && is.na(adjudicate_mode_na(x, ux, mode1, TRUE))) {
+  if (any(is.na(x)) && is.na(decide_mode_na(x, ux, mode1, TRUE))) {
     return(methods::as(NA, typeof(x)))
   } else if (first_known) {
     return(mode1)
@@ -40,7 +40,7 @@ mode_all <- function(x, na.rm = FALSE) {
   tab <- tabulate(match(x, ux))
   modes <- ux[tab == max(tab)]
   if (length(modes) == 1L) {
-    adjudicate_mode_na(x, ux, modes, FALSE)
+    decide_mode_na(x, ux, modes, FALSE)
   } else if (any(is.na(x))) {
     methods::as(NA, typeof(x))
   } else {
@@ -54,14 +54,14 @@ mode_single <- function(x, na.rm = FALSE) {
   }
   mode1 <- mode_all(x, FALSE)
   if (length(mode1) == 1L) {
-    adjudicate_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
+    decide_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
   } else {
     methods::as(NA, typeof(x))
   }
 }
 
 # Helper used in all functions above; don't call directly:
-adjudicate_mode_na <- function(x, ux, mode1, allow_tie) {
+decide_mode_na <- function(x, ux, mode1, allow_tie) {
   mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
   count_mode1 <- length(x[x == mode1])
   count_mode2_na <- length(x[x == mode2]) + length(x[is.na(x)])
@@ -187,7 +187,7 @@ df
 
 ## Implementation notes
 
-The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that all three functions internally call the helper `adjudicate_mode_na()`. `mode_single()` also calls `mode_all()`.
+The first two functions are adapted with modifications from [this Stack Overflow answer](https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode/8189441#8189441). They only behave differently from the original ones when handling missing values. I changed their names to better distinguish them from `base::mode()` and from each other. Note that all three functions internally call the helper `decide_mode_na()`. `mode_single()` also calls `mode_all()`.
 
 The `na.rm` argument follows similar R functions, such as `mean()` and `median()`. Still, it shouldn't be set to `TRUE` without a strong rationale. Missing values have real meaning, and all these functions handle them accordingly --- like [base R operators do](https://adv-r.hadley.nz/vectors-chap.html#missing-values).
 
@@ -219,7 +219,7 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   # whether or not it's still possible to determine
   # the mode. If so, the present function returns the mode;
   # if not, it returns `NA`.
-  if (any(is.na(x)) && is.na(adjudicate_mode_na(x, ux, mode1, TRUE))) {
+  if (any(is.na(x)) && is.na(decide_mode_na(x, ux, mode1, TRUE))) {
     return(methods::as(NA, typeof(x)))
   # Although `mode_first()` is agnostic about other modes,
   # the mode it returns is the one that first appears
@@ -274,7 +274,7 @@ mode_all <- function(x, na.rm = FALSE) {
   # unknown -- all `NA`s might stand for
   # the second-most frequent value, after all!
   if (length(modes) == 1L) {
-    adjudicate_mode_na(x, ux, modes, FALSE)
+    decide_mode_na(x, ux, modes, FALSE)
     # Any missing value could mask any of the
     # known values tied for most frequent --
     # and break the tie. This makes it
@@ -311,9 +311,9 @@ mode_single <- function(x, na.rm = FALSE) {
   # `mode1` is really the only mode, even
   # if all `NA`s stand in for `mode2`
   # (the latter is computed within
-  # `adjudicate_mode_na()`):
+  # `decide_mode_na()`):
   if (length(mode1) == 1L) {
-    adjudicate_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
+    decide_mode_na(x, unique(x[!is.na(x)]), mode1, FALSE)
   # Multimodal distributions are always `NA`.
   # Some users prefer this stricter way of
   # estimating the mode, or they require it
@@ -323,7 +323,7 @@ mode_single <- function(x, na.rm = FALSE) {
   }
 }
 
-adjudicate_mode_na <- function(x, ux, mode1, allow_tie) {
+decide_mode_na <- function(x, ux, mode1, allow_tie) {
   # Some values might be missing. We need to check
   # whether there are so many missings that the most
   # frequent known value, `mode1`, might be less
