@@ -23,6 +23,17 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   if (!any(is.na(x))) {
     return(mode1)
   }
+  count_mode2_na <- sort(tab, decreasing = TRUE)[-1L]
+  if (!length(count_mode2_na)) {
+    count_mode2_na <- 0L
+  }
+  count_mode2_na <- max(count_mode2_na) + length(x[is.na(x)])
+  if (first_known) {
+    count_mode2_na <- count_mode2_na - 1
+  }
+  if (max(tab) > count_mode2_na) {
+    return(mode1)
+  }
   mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
   mode1_appears_first <- match(mode1, x) < match(mode2, x)
   mode1_is_half_or_more <- max(tab) >= length(x) / 2
@@ -213,20 +224,27 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   # because they will receive special treatment
   # later on.
   ux <- unique(x[!is.na(x)])
-  # Find the index of the most frequent known
-  # value (the possible mode) and subset this
-  # value:
-  mode1 <- ux[which.max(tabulate(match(x, ux)))]
-  # The present implementation only differs from the
-  # linked original function in terms of `NA` handling.
-  # Therefore, it returns `mode1` just like that function
-  # does if there are no missing values. What if some
-  # values really are missing? We call a helper function,
-  # documented further below, that adjudicates
-  # whether or not it's still possible to determine
-  # the mode. If not, the present function returns `NA`:
-  if (any(is.na(x)) && is.na(decide_mode_na(x, ux, mode1, TRUE))) {
-    return(methods::as(NA, typeof(x)))
+  # Count the instances of each known value:
+  tab <- tabulate(match(x, ux))
+  # Subset the most frequent known value --
+  # the putative mode; either this or `NA`
+  # will ultimately be returned:
+  mode1 <- ux[which.max(tab)]
+  # The present implementation only differs
+  # from the original function in terms
+  # of `NA` handling. Therefore, it returns
+  # `mode1` just like that function does
+  # if there are no missing values:
+  if (!any(is.na(x))) {
+    return(mode1)
+  }
+  # What if some values really are missing?
+  # Unlike the other mode functions, `mode_first()`
+  # needs to check whether the first-appearing value
+  # (or, by default of `first_known = TRUE`, the
+  # first-appearing value that is known to be a mode)
+  # is as frequent or more as all other values taken
+  # together.
   # `mode_first()` is agnostic about other modes.
   # By default (`first_known = TRUE`), it returns
   # either the first-appearing value that is known
@@ -242,17 +260,19 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   # mode, but the first value that is known to be a mode
   # is `1`. `mode_first(c(2, 1, 1, NA), first_known = FALSE)`
   # returns `NA`.
-  } else if (first_known) {
-    return(mode1)
-  }
   # Get the most frequent known value that is not `mode1`:
   mode2 <- ux[which.max(tabulate(match(x[x != mode1], ux)))]
-  # `mode1` is the true first mode only if it appears
-  # before `mode2` -- i.e., if its index is lower:
-  if (match(mode1, x) < match(mode2, x)) {
+  mode1_appears_first <- match(mode1, x) < match(mode2, x)
+  mode1_is_half_or_more <- max(tab) >= length(x) / 2
+  if (mode1_is_half_or_more && (mode1_appears_first || first_known)) {
     mode1
-  } else {
+    # Call a helper function that adjudicates
+    # whether or not it's still possible to
+    # determine the mode:
+  } else if (is.na(decide_mode_na(x, ux, mode1))) {
     methods::as(NA, typeof(x))
+  } else {
+    mode1
   }
 }
 
