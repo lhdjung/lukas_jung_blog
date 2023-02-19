@@ -245,6 +245,27 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
   # first-appearing value that is known to be a mode)
   # is as frequent or more as all other values taken
   # together.
+  # The next few steps determine the maximum number
+  # of possible instances of the second-most
+  # frequent value. The goal is to test whether
+  # this value might contest `mode1`' s status
+  # as the first-appearing mode:
+  count_mode2_na <- sort(tab, decreasing = TRUE)[-1L]
+  if (!length(count_mode2_na)) {
+    count_mode2_na <- 0L
+  }
+  count_mode2_na <- max(count_mode2_na) + length(x[is.na(x)])
+  # By default, `first_known = TRUE` lowers
+  # the threshold that `mode1` needs to pass
+  # by 1. That is because it accepts the first
+  # known mode even if that value appears only
+  # after the possible other mode, `mode2`:
+  if (first_known) {
+    count_mode2_na <- count_mode2_na - 1
+  }
+  if (max(tab) > count_mode2_na) {
+    return(mode1)
+  }
   # `mode_first()` is agnostic about other modes.
   # By default (`first_known = TRUE`), it returns
   # either the first-appearing value that is known
@@ -271,8 +292,10 @@ mode_first <- function(x, na.rm = FALSE, first_known = TRUE) {
     # determine the mode:
   } else if (is.na(decide_mode_na(x, ux, mode1))) {
     methods::as(NA, typeof(x))
-  } else {
+  } else if (length(ux) == 1L && mode1_is_half_or_more) {
     mode1
+  } else {
+    methods::as(NA, typeof(x))
   }
 }
 
