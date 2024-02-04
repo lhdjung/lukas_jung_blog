@@ -1,0 +1,67 @@
+---
+title: "NA-coalescing operators"
+author: "Lukas Jung"
+date: "2024-01-04"
+categories: [code, analysis]
+draft: true
+---
+
+---
+title: "NA-coalescing operators"
+---
+
+This document presents a "NA-coalescing" operator, `%|%`, that replaces `NA` elements of a vector by a safe default value.
+
+### Motivation
+
+For better or worse, the `NA` objects in R (`NA`, `NA_real_`, etc.) do not always represent missing values. They can also result from coercion, or from indexing a vector out of bounds:
+
+```{r}
+as.numeric("hello")
+
+foo <- c(1, 2, 3)
+foo[4]
+```
+
+Such `NA`s are conceptually much closer to `NULL` and `NaN` than to existing but unknown values, as in `NA + 1`. Therefore, operations that may return `NA` for reasons other than propagation of missingness create the need for a safe fallback.
+
+### Implementation
+
+The `%|%` operator replaces all `NA` elements of `x` by `y`:
+
+```{r}
+`%|%` <- function(x, y) {
+  `[<-`(x, is.na(x), y)
+}
+
+bar <- c(4, NA, 3, NA, 7)
+bar %|% 0
+```
+
+Equivalent and more readable, but a little slower:
+
+```{r}
+`%|%` <- function(x, y) {
+  x[is.na(x)] <- y
+  x
+}
+
+bar
+bar %|% 0
+```
+
+Unlike the [null-coalescing operator, `%||%`](https://rlang.r-lib.org/reference/op-null-default.html), this one is vectorized. It is inspired by the [`%|%` operator from rlang](https://rlang.r-lib.org/reference/op-na-default.html), which is stricter about types and more efficient but otherwise the same. The present operator is meant for use cases where type checking or an rlang dependency are not desired.
+
+If you are certain that `x` can only ever have length 1 and you care greatly about performance, you could also use this operator:
+
+```{r}
+`%|%` <- function(x, y) {
+  if (is.na(x)) {
+    y
+  } else {
+    x
+  }
+}
+```
+
+This can also be useful for testing that `x` has length 1 because it will throw an error otherwise. However, of course you could write such a check explicitly (inside of the operator or elsewhere), even with a vectorized implementation as above.
