@@ -1,0 +1,53 @@
+---
+title: "Three logicians walk into a bar, with R"
+---
+
+If you are a nerd like me, you may have heard a joke that goes like this:
+
+> Three logicians walk into a bar. The barkeeper asks: "Does everyone of you want a beer?"
+>
+> The first logician says "I don't know". The second logician also says "I don't know". The third logician says "Yes".
+
+Some people are mystified by this, but it makes perfect sense. Even better, it can be explained with R code! Just like the R programming language, the joke relies on three-valued logic (more precisely, [Kleene's strong logic of indeterminacy](https://en.wikipedia.org/wiki/Three-valued_logic#Kleene_and_Priest_logics)).
+
+The key idea is that some truth values are missing. We know something is either true or false, but we don't know which one it is. The joke represents such values as the logicians' knowledge about each other's wishes. R represents them as `NA`, so that's what my code will use. I will call the logicians Alice, Bob, and Chris.
+
+## Explaining the joke with facts and (three-valued) logic
+
+Alice says she doesn't know whether all three logicians want a beer. But if she herself didn't want a beer, she would know for a fact that *not* all of them want one. So she must want a beer, but since she doesn't know about her two friends, she doesn't know about all of them together. Let's represent this in code:
+
+```{r}
+want_a_beer <- c(TRUE, NA, NA)
+all(want_a_beer)
+```
+
+The `all()` function checks a logical vector like `want_a_beer` and says whether each of its elements is affirmative. Now, do both `NA`s secretly represent a positive truth value, i.e., the wish for a beer? We don't know --- that's why they are `NA`s. In other words, `all()` doesn't have sufficient information for a clear `TRUE` or `FALSE` judgement, and it returns `NA`.
+
+Bob, the second logician, also says "I don't know". He just learned that Alice could have a drink, but Chris hasn't said anything yet. So when it comes to the "everyone" question, Bob is just as ignorant as Alice:
+
+```{r}
+want_a_beer <- c(TRUE, TRUE, NA)
+all(want_a_beer)
+```
+
+As with Alice, we know Bob wants a beer. He would say "No" if he didn't. In R, this would be `FALSE`:
+
+```{r}
+want_a_beer <- c(TRUE, FALSE, NA)
+all(want_a_beer)
+```
+
+What about Chris? Each of his two friends wants a beer --- they have indicated as much. Chris is thirsty, too, so he actually knows that every single logician wants a beer. This means Chris is the first person who is able to give a yes-or-no answer. It's yes, which is `TRUE` in R. Since each element of `want_a_beer` is `TRUE`, so is `all(want_a_beer)`:
+
+```{r}
+want_a_beer <- c(TRUE, TRUE, TRUE)
+all(want_a_beer)
+```
+
+## Missing values in R
+
+Do you use R? Do your data contain missing values? Here are some pointers for you.
+
+*R for Data Science* by Hadley Wickham and others presents an [introduction to `NA`](https://r4ds.hadley.nz/logicals#sec-na-comparison) before going into detail in a dedicated [chapter on missing values](https://r4ds.hadley.nz/missing-values). *Advanced R*, also by Hadley, [highlights some exceptions](https://adv-r.hadley.nz/vectors-chap.html#missing-values) to the rule that `NA` propagates through every operation. (We saw another exception above: `all(TRUE, FALSE, NA)` returns `FALSE` despite the `NA` because at least one value is `FALSE`.)
+
+For more practical tools, check out the [naniar](https://naniar.njtierney.com/) package by Nicholas Tierney and others. CRAN has a [task view on missing data](https://cran.r-project.org/web/views/MissingData.html) where you can search for packages that deal with specific topics. If you care terribly much about how missing values affect median and mode estimates, take a look at [naidem](https://lhdjung.github.io/naidem/) and [moder](https://lhdjung.github.io/moder/) by yours truly.
