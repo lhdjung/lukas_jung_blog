@@ -1,0 +1,53 @@
+---
+title: "Custom replacement for `purrr::cross()`"
+author: "Lukas Jung"
+date: "2024-03-16"
+categories: [code, analysis]
+draft: true
+---
+
+These functions are drop-in replacements for `purrr::cross()` and `purrr::cross2()`, which were deprecated, so they are going to be removed from purrr at some point. Use them where the recommended replacement for purrr's `cross()` functions, `tidyr::expand_grid()`, doesn't fit.
+
+`base::expand.grid()` and the `cross()` functions vary the first column fastest, but `tidyr::expand_grid()` varies it slowest. This means the functions are not equivalent, and `expand_grid()` can't be used as a replacement for `cross()` if the order of the output matters.
+
+The functions below vary fastest by default. Their API is like that of the `purrr::cross()` functions except they have a `.vary` argument, so you can vary slowest if you want to. They depend on vctrs, tibble, and dplyr. In particular, `cross_df_custom()` also uses `purrr::simplify_all()`, which was deprecated in purrr 1.0.0, like the `cross()` functions.
+
+```{r}
+# Basic function
+cross_custom <- function(.l, .filter = NULL,
+                         .vary = c("fastest", "slowest")) {
+  out <- tibble::as_tibble(vctrs::vec_expand_grid(!!!.l, .vary = .vary))
+  if (is.null(.filter)) {
+    return(out)
+  } else if (!is.function(.filter)) {
+    cli::cli_abort(c(
+      "`.filter` must be a function.",
+      "i" = "(Also, it needs to return a single logical value.)"
+    ))
+  }
+  dplyr::filter(out, !.filter(.x, .y))
+}
+
+# Special cases
+
+cross2_custom <- function(.x, .y, .filter = NULL,
+                          .vary = c("fastest", "slowest")) {
+  cross_custom(
+    list(.x = .x, .y = .y), .filter = .filter, .vary = .vary
+  )
+}
+
+cross3_custom <- function(.x, .y, .z, .filter = NULL,
+                          .vary = c("fastest", "slowest")) {
+  cross_custom(list(.x, .y, .z), .filter = .filter, .vary = .vary)
+}
+
+cross_df_custom <- function(.l, .filter = NULL,
+                            .vary = c("fastest", "slowest")) {
+  cross_custom(.l, .filter = .filter, .vary = .vary) %>% 
+    transpose() %>% 
+    purrr::simplify_all() %>% 
+    tibble::as_tibble()
+}
+```
+
