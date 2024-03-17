@@ -10,22 +10,24 @@ These functions are drop-in replacements for `purrr::cross()` and `purrr::cross2
 
 `base::expand.grid()` and the `cross()` functions vary the first column fastest, but `tidyr::expand_grid()` varies it slowest. This means the functions are not equivalent, and `expand_grid()` can't be used as a replacement for `cross()` if the order of the output matters.
 
-The functions below vary fastest by default. Their API is like that of the `purrr::cross()` functions except they have a `.vary` argument, so you can vary slowest if you want to. They depend on vctrs, tibble, and dplyr. In particular, `cross_df_custom()` also uses `purrr::simplify_all()`, which was deprecated in purrr 1.0.0, like the `cross()` functions.
+The functions below vary fastest by default. Their API is like that of the `purrr::cross()` functions except they have a `.vary` argument, so you can vary slowest if you really want to. They depend on vctrs and dplyr. In particular, `cross_df_custom()` also uses tibble and `purrr::simplify_all()`, which was deprecated in purrr 1.0.0, like the `cross()` functions.
 
 ```{r}
 # Basic function
 cross_custom <- function(.l, .filter = NULL,
                          .vary = c("fastest", "slowest")) {
-  out <- tibble::as_tibble(vctrs::vec_expand_grid(!!!.l, .vary = .vary))
+  out <- vctrs::vec_expand_grid(!!!.l, .vary = .vary)
   if (is.null(.filter)) {
-    return(out)
+    return(as.list(out))
   } else if (!is.function(.filter)) {
     cli::cli_abort(c(
       "`.filter` must be a function.",
       "i" = "(Also, it needs to return a single logical value.)"
     ))
   }
-  dplyr::filter(out, !.filter(.x, .y))
+  out %>% 
+    dplyr::filter(!.filter(.x, .y)) %>% 
+    as.list()
 }
 
 # Special cases
