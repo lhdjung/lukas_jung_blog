@@ -6,7 +6,7 @@ categories: [code, analysis]
 draft: true
 ---
 
-You likely know about search and replace in RStudio. But what if you have many terms to replace? It would be very cumbersome and error-prone to do all of that manually. Here is how to automate it using R, without any dependencies.
+You likely know about search and replace in RStudio. But what if you have many terms to replace? It would be very cumbersome and error-prone to do all of that manually. Here is how to automate it using R. The post offers you two dependency-free functions.
 
 `replace_in_file()` takes a file path, a pattern to look for in that file, and a replacement for the pattern. It's the normal replace-all use case. But `rename_variables_df()` scales this to any number of variables to replace.
 
@@ -35,7 +35,7 @@ replace_in_file <- function(path, pattern, replacement, ignore_case = TRUE,
 }
 
 # Function that goes to the file at `path` and takes `df_names` as a lookup
-# table to replace the values in the `col_old` column by those in `col_new`.
+# table to replace the values in the `col_old` column by those in `col_new`:
 rename_variables_df <- function(path, df_names, col_old, col_new,
                                  ignore_case = TRUE, fixed = FALSE,
                                  use_bytes = FALSE) {
@@ -53,3 +53,24 @@ rename_variables_df <- function(path, df_names, col_old, col_new,
 }
 ```
 
+I recommend `tibble::tribble()` for creating the data frame. In this way, each pair of names is in the same row:
+
+```{r}
+cakes <- tibble::tribble(
+  ~messy,                      ~tidy,
+  "My Creamy Apple Pie!",      "apple_pie",
+  "Yummy Angel Food Cake...",  "angel_food_cake",
+  "Black Forest cake?!",       "black_forest_cake"
+)
+```
+
+Now replace all names in your file. It's not a very realistic example, but you get the idea.
+
+```{r}
+rename_variables_df(
+  path = "recipes/cakes.R",
+  df_names = cakes,
+  col_old = "messy",
+  col_new = "tidy"
+)
+```
