@@ -15,7 +15,7 @@ You first need to collect all the names in a data frame: one column with the old
 Each row in the data frame contains an old name and a new name. `rename_variables_df()` replaces all instances of the old name by the new one. Using a data frame makes sure the two vectors of names are matched in length.
 
 ```{r}
-replace_in_file <- function(path, pattern, replacement, ignore_case = TRUE,
+replace_in_file <- function(path, pattern, replacement, ignore_case = FALSE,
                             fixed = FALSE, use_bytes = FALSE) {
   # Read the content of the file into a variable:
   file_content_old <- readLines(path)
@@ -37,7 +37,7 @@ replace_in_file <- function(path, pattern, replacement, ignore_case = TRUE,
 # Function that goes to the file at `path` and takes `df_names` as a lookup
 # table to replace the values in the `col_old` column by those in `col_new`:
 rename_variables_df <- function(path, df_names, col_old, col_new,
-                                 ignore_case = TRUE, fixed = FALSE,
+                                 ignore_case = FALSE, fixed = FALSE,
                                  use_bytes = FALSE) {
   if (!all(c(col_old, col_new) %in% colnames(df_names))) {
     stop("`col_old` and `col_new` must be column names of `df_names`.")
