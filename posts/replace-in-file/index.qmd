@@ -1,0 +1,55 @@
+---
+title: "Replace names in a file using R"
+author: "Lukas Jung"
+date: "2024-03-18"
+categories: [code, analysis]
+draft: true
+---
+
+You likely know about search and replace in RStudio. But what if you have many terms to replace? It would be very cumbersome and error-prone to do all of that manually. Here is how to automate it using R, without any dependencies.
+
+`replace_in_file()` takes a file path, a pattern to look for in that file, and a replacement for the pattern. It's the normal replace-all use case. But `rename_variables_df()` scales this to any number of variables to replace.
+
+You first need to collect all the names in a data frame: one column with the old names and one with the new ones. Besides a path argument, `rename_variables_df()` also takes that data frame (`df_names`) as well as the names of two columns that store the old and new names (`col_old` and `col_new`) in the data frame. Further options are passed down to `gsub()`, which takes care of the actual replacement.
+
+Each row in the data frame contains an old name and a new name. `rename_variables_df()` replaces all instances of the old name by the new one. Using a data frame makes sure the two vectors of names are matched in length.
+
+```{r}
+replace_in_file <- function(path, pattern, replacement, ignore_case = TRUE,
+                            fixed = FALSE, use_bytes = FALSE) {
+  # Read the content of the file into a variable:
+  file_content_old <- readLines(path)
+
+  # Replace the word in the content:
+  file_content_new <- gsub(
+    pattern = pattern,
+    replacement = replacement,
+    x = file_content_old,
+    ignore.case = ignore_case,
+    fixed = fixed,
+    useBytes = use_bytes
+  )
+
+  # Write the updated content back to the file:
+  writeLines(file_content_new, path)
+}
+
+# Function that goes to the file at `path` and takes `df_names` as a lookup
+# table to replace the values in the `col_old` column by those in `col_new`.
+rename_variables_df <- function(path, df_names, col_old, col_new,
+                                 ignore_case = TRUE, fixed = FALSE,
+                                 use_bytes = FALSE) {
+  if (!all(c(col_old, col_new) %in% colnames(df_names))) {
+    stop("`col_old` and `col_new` must be column names of `df_names`.")
+  }
+  for (i in seq_len(nrow(df_names))) {
+    replace_in_file(
+      path = path,
+      pattern = df_names[[col_old]][i],
+      replacement = df_names[[col_new]][i],
+      ignore_case = ignore_case
+    )
+  }
+}
+```
+
