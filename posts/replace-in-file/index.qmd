@@ -8,17 +8,23 @@ draft: true
 
 You likely know about search and replace in RStudio. But what if you have many terms to replace? It would be very cumbersome and error-prone to do all of that manually. Here is how to automate it using R. The post offers you two dependency-free functions.
 
-`replace_in_file()` takes a file path, a pattern to look for in that file, and a replacement for the pattern. It's the normal replace-all use case. But `replace_from_df()` scales this to any number of variables to replace.
+`replace_in_file()` takes a file path, a pattern to look for in that file, and a replacement for the pattern. It's the normal replace-all use case except, by default, it only replaces whole words (`whole_word = TRUE`). However, `replace_from_df()` scales this to replace any number of variables at once.
 
 You first need to collect all the names in a data frame: one column with the old names and one with the new ones. Besides a path argument, `replace_from_df()` also takes that data frame (`df_names`) as well as the names of two columns that store the old and new names (`col_pattern` and `col_replacement`) in the data frame. Further options are passed down to `gsub()`, which takes care of the actual replacement.
 
 Each row in the data frame contains an old name and a new name. `replace_from_df()` replaces all instances of the old name by the new one. Using a data frame makes sure the two vectors of names are matched in length.
 
 ```{r}
-replace_in_file <- function(path, pattern, replacement, ignore_case = FALSE,
-                            fixed = FALSE, use_bytes = FALSE) {
+replace_in_file <- function(path, pattern, replacement, whole_word = TRUE,
+                            ignore_case = FALSE, fixed = FALSE,
+                            use_bytes = FALSE) {
   # Read the content of the file into a variable:
   file_content_old <- readLines(path)
+
+  # By default, only select whole words:
+  if (whole_word) {
+    pattern <- paste0("\\b", pattern, "\\b")
+  }
 
   # Replace the word in the content:
   file_content_new <- gsub(
@@ -38,8 +44,8 @@ replace_in_file <- function(path, pattern, replacement, ignore_case = FALSE,
 # table to replace the values in the `col_pattern` column by those in
 # `col_replacement`:
 replace_from_df <- function(path, df_names, col_pattern, col_replacement,
-                            ignore_case = FALSE, fixed = FALSE,
-                            use_bytes = FALSE) {
+                            whole_word = TRUE, ignore_case = FALSE,
+                            fixed = FALSE, use_bytes = FALSE) {
   if (!all(c(col_pattern, col_replacement) %in% colnames(df_names))) {
     stop("`col_pattern` and `col_replacement` must be column names of `df_names`.")
   }
@@ -48,7 +54,10 @@ replace_from_df <- function(path, df_names, col_pattern, col_replacement,
       path = path,
       pattern = df_names[[col_pattern]][i],
       replacement = df_names[[col_replacement]][i],
-      ignore_case = ignore_case
+      whole_word = whole_word,
+      ignore_case = ignore_case,
+      fixed = fixed,
+      use_bytes = use_bytes
     )
   }
 }
