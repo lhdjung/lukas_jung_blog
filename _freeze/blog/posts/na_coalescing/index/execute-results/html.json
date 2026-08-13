@@ -1,0 +1,15 @@
+{
+  "hash": "81860c4d4d35affd3dedbb5e480f4abd",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"NA-coalescing operators\"\nauthor: \"Lukas Jung\"\ndate: \"2024-01-04\"\ncategories: [code, analysis]\ndraft: true\n---\n\n---\ntitle: \"NA-coalescing operators\"\n---\n\nThis document presents a \"NA-coalescing\" operator, `%|%`, that replaces `NA` elements of a vector by a safe default value.\n\n### Motivation\n\nFor better or worse, the `NA` objects in R (`NA`, `NA_real_`, etc.) do not always represent missing values. They can also result from coercion, or from indexing a vector out of bounds:\n\n\n::: {.cell}\n\n```{.r .cell-code}\nas.numeric(\"hello\")\n```\n\n::: {.cell-output .cell-output-stderr}\n\n```\nWarning: NAs introduced by coercion\n```\n\n\n:::\n\n::: {.cell-output .cell-output-stdout}\n\n```\n[1] NA\n```\n\n\n:::\n\n```{.r .cell-code}\nfoo <- c(1, 2, 3)\nfoo[4]\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\n[1] NA\n```\n\n\n:::\n:::\n\n\nSuch `NA`s are conceptually much closer to `NULL` and `NaN` than to existing but unknown values, as in `NA + 1`. Therefore, operations that may return `NA` for reasons other than propagation of missingness create the need for a safe fallback.\n\n### Implementation\n\nThe `%|%` operator replaces all `NA` elements of `x` by `y`:\n\n\n::: {.cell}\n\n```{.r .cell-code}\n`%|%` <- function(x, y) {\n  `[<-`(x, is.na(x), y)\n}\n\nbar <- c(4, NA, 3, NA, 7)\nbar %|% 0\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\n[1] 4 0 3 0 7\n```\n\n\n:::\n:::\n\n\nEquivalent and more readable, but a little slower:\n\n\n::: {.cell}\n\n```{.r .cell-code}\n`%|%` <- function(x, y) {\n  x[is.na(x)] <- y\n  x\n}\n\nbar\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\n[1]  4 NA  3 NA  7\n```\n\n\n:::\n\n```{.r .cell-code}\nbar %|% 0\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\n[1] 4 0 3 0 7\n```\n\n\n:::\n:::\n\n\nUnlike the [null-coalescing operator, `%||%`](https://rlang.r-lib.org/reference/op-null-default.html), this one is vectorized. It is inspired by the [`%|%` operator from rlang](https://rlang.r-lib.org/reference/op-na-default.html), which is stricter about types and more efficient but otherwise the same. The present operator is meant for use cases where type checking or an rlang dependency are not desired.\n\nIf you are certain that `x` can only ever have length 1 and you care greatly about performance, you could also use this operator:\n\n\n::: {.cell}\n\n```{.r .cell-code}\n`%|%` <- function(x, y) {\n  if (is.na(x)) {\n    y\n  } else {\n    x\n  }\n}\n```\n:::\n\n\nThis can also be useful for testing that `x` has length 1 because it will throw an error otherwise. However, of course you could write such a check explicitly (inside of the operator or elsewhere), even with a vectorized implementation as above.\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

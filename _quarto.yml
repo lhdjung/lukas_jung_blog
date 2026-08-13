@@ -2,18 +2,15 @@ project:
   type: website
 
 website:
-  title: "Lukas Jung's blog"
+  title: "Lukas Jung"
   navbar:
     right:
-      - about.qmd
-      - icon: github
-        href: https://github.com/
-      - icon: twitter
-        href: https://twitter.com
+      - href: blog/index.qmd
+        text: Blog
+
 format:
   html:
     theme: theme.scss
     css: styles.css
 
 editor: visual
-

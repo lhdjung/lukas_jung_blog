@@ -1,0 +1,90 @@
+---
+title: "Stumbling blocks when coming to R from other languages"
+draft: true
+---
+
+This post discusses some obstacles faced by programmers who are new to R but familiar with other programming languages. It focuses on what's important in practice.
+
+tl;dr: R is a functional, dynamic, interpreted, and domain-specific language.
+
+## Functional vs. object-oriented
+
+R is a functional language, not an object-oriented one. Yet it's not purely functional because it's made to get things done. TODO: MORE HERE!
+
+## Indexing from 1
+
+R starts indexing at 1, not 0. If that confounds you, I sympathize, but it's closely aligned with the intuitions of first-language learners. It also does a better job of mapping to the dimensions of matrices and similar structures. For you, though, the switch might be hard, and there's not much to say about that.
+
+```{r}
+coordinates <- c("x", "y", "z")
+coordinates[1]
+coordinates[2]
+coordinates[3]
+```
+
+If you do index at zero, it will return a length-zero vector of the same type. Note that R says "character" instead of "string":
+
+```{r}
+coordinates[0]
+```
+
+## String concatenation
+
+R doesn't natively support string interpolation. This might be a shock unless you're coming from Java. If you really want interpolation, check out the [glue](https://glue.tidyverse.org/) package.
+
+Most languages use `+` for concatenating two strings, but even this isn't supported in R. Use `paste()` or `paste0()` instead. Both functions take any number of strings or other objects coercible to strings. `paste()` inserts spaces by default, `paste0()` doesn't:
+
+```{r}
+# Spaces:
+paste("foo", "bar")
+paste("foo", "bar", "baz")
+
+# No spaces:
+paste0("foo", "bar")
+paste0("foo", "bar", "baz")
+```
+
+## Vectors are not like Python's lists
+
+R has a collection type called "list", and so does Python. But don't be confused: collections in the two languages are pretty much orthogonal to each other.
+
+All of R's collections are called *vectors*. R has typed, non-recursive collections called *atomic vectors*. They can be integer vectors, string vectors, and so on. Each element must have the same type, and it must have length 1. Lists, the other kind of collection, are the opposite: their elements can have any type and any length.
+
+TODO: ADD EXAMPLES HERE
+
+None of Python's four kinds of collection are typed. Some of them are mutable, others aren't. In R, neither atomic vectors nor lists are mutable! You will never change an object in place. Instead, you need to assign a new value to it. This might sound like a drag at first but it's super valuable because it means you can't accidentally mutate something while expecting it to stay the same.
+
+If vectors aren't mutable, what about scalars? R doesn't have mutable scalars, either... but this is because it doesn't have any scalars. Yes, you read that right: everything that would be a scalar in other languages is a vector of length 1 in R. This leads to the next stumbling block.
+
+## Strings as vectors
+
+Be careful when indexing strings, particularly if you're coming from Python. This operation has very different semantics in R. In the next example, you'd expect to get the first character (remember one-indexing!), but instead you get the whole string:
+
+```{r}
+"Lucy"[1]
+```
+
+What happened? A string is just a string *vector* of length 1, so indexing the first element returns the first string from that vector, not the first character from the string. Compare:
+
+```{r}
+"Lucy"[1]
+c("Lucy")[1]
+c("Lucy", "Peter", "Fynn")[1]
+```
+
+In Python, you would get `"L"` for `"Lucy"[0]` and `"Lucy"` for `["Lucy"][0]`. That's because `"Lucy"` is a scalar and `["Lucy"]` is a list. In R, there is no such distinction because, again, there are no scalars. Imagine it's always `["Lucy"]`, never `"Lucy"` --- always a list, never a scalar. The analogy isn't perfect but you get the point: R doesn't have single things, only collections of things, called vectors; even if there is only one thing in a vector.
+
+So how do you subset strings in R if not by indexing? I recommend `stringr::str_sub()`, although other solutions exist.
+
+```{r}
+library(stringr)
+str_sub("Lucy", start = 1, end = 1)
+```
+
+## Further resources
+
+All of these are free online:
+
+- [*A Succinct Intro to R*](http://r-guide.steveharoz.com/) by Steve Haroz. Snappy, opinionated and impatient with the quirks of the language. If that describes yourself after reading this article but you still want to learn R, give Steve's intro a read. It's useful, as well.
+- [*R for Data Science*](https://r4ds.hadley.nz/) by Hadley Wickham and others. Without question the best place to learn about R in practice. It focuses on the tidyverse, the meta-framework that turned R into a good language. This includes packages like dplyr and ggplot2. The book, co-authored by the leading tidyverse developer, is brilliantly written and should be read by anyone with more than a passing interest in R.
+- [*Advanced R*](https://adv-r.hadley.nz/), also by Hadley Wickham. Read this if you're curious about programming, not just data science tools. *Advanced R* will reveal the true depth of the language, especially in the chapter on environments and the part about metaprogramming. Also, the vectors chapter is a great rundown of R's type system.

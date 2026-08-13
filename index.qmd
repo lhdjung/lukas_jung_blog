@@ -1,13 +1,31 @@
 ---
-title: "Lukas Jung's blog"
-listing:
-  contents: posts
-  sort: "date desc"
-  type: default
-  categories: true
-  sort-ui: false
-  filter-ui: false
-  feed: true
-page-layout: full
-title-block-banner: true
+title: "Lukas Jung"
+image: profile.jpg
+about:
+  template: trestles
+  image-width: 15em
+  image-shape: round
+  links:
+    - icon: github
+      text: GitHub
+      href: https://github.com/lhdjung
+    - icon: envelope
+      text: Email
+      href: mailto:lukas.jung@unibe.ch
 ---
+
+I am a PhD student in psychology at University of Bern, working on forensic metascience.
+
+My work focuses on developing, implementing, and validating statistical methods to check published work for errors. I wrote the [scrutiny](https://lhdjung.github.io/scrutiny/) R package for the GRIM and GRIMMER tests.
+
+# Publications
+
+**Jung, L.** (2025). scrutiny: Error detection in science. R package version 0.6.1 *[Computer software]*. [https://lhdjung.github.io/scrutiny/](https://lhdjung.github.io/scrutiny/)
+
+**Jung, L.** (2025). unsum: Reconstruct raw data from summary statistics. R package version 0.2.0 *[Computer software]*. [https://lhdjung.github.io/unsum/](https://lhdjung.github.io/unsum/)
+
+Borgert, N., Jansen, L., **Jung, L.**, Halbritter, T., & Elson, M. (2026). Position Paper: Corrections Not Found - Post-Publication Integrity in Usable Security and Privacy Research. *2026 IEEE Symposium on Security and Privacy Workshops (SPW)*, 345–350. [https://doi.org/10.1109/SPW72489.2026.00043](https://doi.org/10.1109/SPW72489.2026.00043)
+
+Wilkinson, J., Heal, C., Antoniou, G. A., …, **Jung, L.**, …, Kirkham, J. J. (2025). Assessing the feasibility and impact of clinical trial trustworthiness checks via an application to Cochrane Reviews: Stage 2 of the INSPECT-SR project. *Journal of Clinical Epidemiology*, 184, 111824. [https://doi.org/10.1016/j.jclinepi.2025.111824](https://doi.org/10.1016/j.jclinepi.2025.111824)
+
+Wilkinson, J., Heal, C., Flemyng, E., **Jung, L.**, …, Kirkham, J. J. (2025). INSPECT-SR: A tool for assessing trustworthiness of randomised controlled trials. *medRxiv*. [https://doi.org/10.1101/2025.09.03.25334905](https://doi.org/10.1101/2025.09.03.25334905)
