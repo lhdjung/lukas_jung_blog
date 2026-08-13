@@ -1,0 +1,15 @@
+{
+  "hash": "40e92245ad17be391fe792cd4ebba755",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Error in Quarto with tidy evaluation\"\n---\n\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(dplyr) |> \n  suppressPackageStartupMessages()\n\niris <- iris |> \n  as_tibble() |> \n  slice(1:3)\n\nmult_1000 <- function(data, cols = everything(), check_numeric = TRUE) {\n  if (check_numeric) {\n    selection2 <- rlang::expr(where(is.numeric))\n  } else {\n    selection2 <- rlang::expr(everything())\n  }\n  dplyr::mutate(data, dplyr::across(\n    .cols = {{ cols }} & !!selection2,\n    .fns  = function(x) x * 1000\n  ))\n}\n\nmult_1000(iris)\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\n# A tibble: 3 × 5\n  Sepal.Length Sepal.Width Petal.Length Petal.Width Species\n         <dbl>       <dbl>        <dbl>       <dbl> <fct>  \n1         5100        3500         1400         200 setosa \n2         4900        3000         1400         200 setosa \n3         4700        3200         1300         200 setosa \n```\n\n\n:::\n:::\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

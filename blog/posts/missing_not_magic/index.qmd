@@ -1,5 +1,6 @@
 ---
 title: "Missing values are not magic"
+draft: true
 ---
 
 If you work with data, you most likely have to deal with missing values. You may have read that `NA` infects everything it touches --- all operations that take data with any `NA` elements will output `NA` in turn.

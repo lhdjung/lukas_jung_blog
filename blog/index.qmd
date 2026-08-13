@@ -1,13 +1,5 @@
 ---
 title: "Lukas Jung's blog"
-listing:
-  contents: posts
-  sort: "date desc"
-  type: default
-  categories: true
-  sort-ui: false
-  filter-ui: false
-  feed: true
-  fields: [image, date, title, categories]
-page-layout: full
 ---
+
+Blog posts coming up!
