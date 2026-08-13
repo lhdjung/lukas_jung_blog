@@ -5,6 +5,8 @@ website:
   title: "Lukas Jung"
   navbar:
     right:
+      - href: index.qmd
+        text: About
       - href: blog/index.qmd
         text: Blog
 
