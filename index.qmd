@@ -50,5 +50,5 @@ Wilkinson, J., Heal, C., Antoniou, G. A., …, **Jung, L.**, …, Kirkham, J. J.
 ::: {.publication}
 INSPECT-SR: A tool for assessing trustworthiness of randomised controlled trials
 
-Wilkinson, J., Heal, C., Flemyng, E., **Jung, L.**, …, Kirkham, J. J. (2025). *medRxiv*. [https://doi.org/10.1101/2025.09.03.25334905](https://doi.org/10.1101/2025.09.03.25334905)
+Wilkinson, J., Heal, C., Flemyng, E., …, **Jung, L.**, …, Kirkham, J. J. (2025). *medRxiv*. [https://doi.org/10.1101/2025.09.03.25334905](https://doi.org/10.1101/2025.09.03.25334905)
 :::
