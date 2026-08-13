@@ -1,7 +1,5 @@
 ---
 title: "R lists as generic vectors"
-author: "Lukas Jung"
-date: "2022-11-14"
 categories: [code, analysis]
 image: "image.jpg"
 draft: true

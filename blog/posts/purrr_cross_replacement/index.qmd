@@ -1,7 +1,5 @@
 ---
 title: "Custom replacement for `purrr::cross()`"
-author: "Lukas Jung"
-date: "2024-03-16"
 categories: [code, analysis]
 draft: true
 execute:

@@ -44,7 +44,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-11fe6b2b4415cde8dbbfdd09d0995f03.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88b36a5de6091fa094eb01def7ff1c82.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -131,6 +131,10 @@ ul.task-list li input[type="checkbox"] {
     <i class="bi bi-github"></i>
      <span class="about-link-text">GitHub</span>
   </a>
+  <a href="https://bsky.app/profile/lhdjung.bsky.social" class="about-link" rel="" target="">
+    <i class="bi bi-bluesky"></i>
+     <span class="about-link-text">Bluesky</span>
+  </a>
   <a href="mailto:lukas.jung@unibe.ch" class="about-link" rel="" target="">
     <i class="bi bi-envelope"></i>
      <span class="about-link-text">Email</span>
@@ -142,11 +146,26 @@ ul.task-list li input[type="checkbox"] {
 <p>My work focuses on developing, implementing, and validating statistical methods to check published work for errors. I wrote the <a href="https://lhdjung.github.io/scrutiny/">scrutiny</a> R package for the GRIM and GRIMMER tests.</p>
 <section id="publications" class="level1">
 <h1>Publications</h1>
-<p><strong>Jung, L.</strong> (2025). scrutiny: Error detection in science. R package version 0.6.1 <em>[Computer software]</em>. <a href="https://lhdjung.github.io/scrutiny/">https://lhdjung.github.io/scrutiny/</a></p>
-<p><strong>Jung, L.</strong> (2025). unsum: Reconstruct raw data from summary statistics. R package version 0.2.0 <em>[Computer software]</em>. <a href="https://lhdjung.github.io/unsum/">https://lhdjung.github.io/unsum/</a></p>
-<p>Borgert, N., Jansen, L., <strong>Jung, L.</strong>, Halbritter, T., &amp; Elson, M. (2026). Position Paper: Corrections Not Found - Post-Publication Integrity in Usable Security and Privacy Research. <em>2026 IEEE Symposium on Security and Privacy Workshops (SPW)</em>, 345–350. <a href="https://doi.org/10.1109/SPW72489.2026.00043">https://doi.org/10.1109/SPW72489.2026.00043</a></p>
-<p>Wilkinson, J., Heal, C., Antoniou, G. A., …, <strong>Jung, L.</strong>, …, Kirkham, J. J. (2025). Assessing the feasibility and impact of clinical trial trustworthiness checks via an application to Cochrane Reviews: Stage 2 of the INSPECT-SR project. <em>Journal of Clinical Epidemiology</em>, 184, 111824. <a href="https://doi.org/10.1016/j.jclinepi.2025.111824">https://doi.org/10.1016/j.jclinepi.2025.111824</a></p>
-<p>Wilkinson, J., Heal, C., Flemyng, E., <strong>Jung, L.</strong>, …, Kirkham, J. J. (2025). INSPECT-SR: A tool for assessing trustworthiness of randomised controlled trials. <em>medRxiv</em>. <a href="https://doi.org/10.1101/2025.09.03.25334905">https://doi.org/10.1101/2025.09.03.25334905</a></p>
+<div class="publication">
+<p>scrutiny: Error detection in science</p>
+<p><strong>Jung, L.</strong> (2025). R package version 0.6.1 <em>[Computer software]</em>. <a href="https://lhdjung.github.io/scrutiny/">https://lhdjung.github.io/scrutiny/</a></p>
+</div>
+<div class="publication">
+<p>unsum: Reconstruct raw data from summary statistics</p>
+<p><strong>Jung, L.</strong> (2025). R package version 0.2.0 <em>[Computer software]</em>. <a href="https://lhdjung.github.io/unsum/">https://lhdjung.github.io/unsum/</a></p>
+</div>
+<div class="publication">
+<p>Position Paper: Corrections Not Found - Post-Publication Integrity in Usable Security and Privacy Research</p>
+<p>Borgert, N., Jansen, L., <strong>Jung, L.</strong>, Halbritter, T., &amp; Elson, M. (2026). <em>2026 IEEE Symposium on Security and Privacy Workshops (SPW)</em>, 345–350. <a href="https://doi.org/10.1109/SPW72489.2026.00043">https://doi.org/10.1109/SPW72489.2026.00043</a></p>
+</div>
+<div class="publication">
+<p>Assessing the feasibility and impact of clinical trial trustworthiness checks via an application to Cochrane Reviews: Stage 2 of the INSPECT-SR project</p>
+<p>Wilkinson, J., Heal, C., Antoniou, G. A., …, <strong>Jung, L.</strong>, …, Kirkham, J. J. (2025). <em>Journal of Clinical Epidemiology</em>, 184, 111824. <a href="https://doi.org/10.1016/j.jclinepi.2025.111824">https://doi.org/10.1016/j.jclinepi.2025.111824</a></p>
+</div>
+<div class="publication">
+<p>INSPECT-SR: A tool for assessing trustworthiness of randomised controlled trials</p>
+<p>Wilkinson, J., Heal, C., Flemyng, E., <strong>Jung, L.</strong>, …, Kirkham, J. J. (2025). <em>medRxiv</em>. <a href="https://doi.org/10.1101/2025.09.03.25334905">https://doi.org/10.1101/2025.09.03.25334905</a></p>
+</div>
 
 
 </section>
@@ -547,6 +566,19 @@ ul.task-list li input[type="checkbox"] {
   });
   </script>
 </div> <!-- /content -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".navbar-nav .nav-link").forEach(function (link) {
+    var href = link.getAttribute("href");
+    if (!href) return;
+    var linkDir = new URL(href, window.location.href).pathname.replace(/index\.html$/, "");
+    if (linkDir !== "/" && window.location.pathname.indexOf(linkDir) === 0) {
+      link.classList.add("active");
+      link.setAttribute("aria-current", "page");
+    }
+  });
+});
+</script>
 
 
 

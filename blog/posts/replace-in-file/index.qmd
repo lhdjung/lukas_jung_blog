@@ -1,7 +1,5 @@
 ---
 title: "Replace names in a file using R"
-author: "Lukas Jung"
-date: "2024-03-18"
 categories: [code, analysis]
 draft: true
 execute:
