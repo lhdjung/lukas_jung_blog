@@ -9,6 +9,9 @@ about:
     - icon: github
       text: GitHub
       href: https://github.com/lhdjung
+    - icon: bluesky
+      text: Bluesky
+      href: https://bsky.app/profile/lhdjung.bsky.social
     - icon: envelope
       text: Email
       href: mailto:lukas.jung@unibe.ch
