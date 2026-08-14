@@ -1,5 +1,8 @@
 /*-- scss:defaults --*/
-@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&display=swap');
+// Public Sans is self-hosted: see the @font-face rules in styles.css. Not
+// fetched from Google, and not @import-ed -- an @import lands at the top of the
+// compiled stylesheet, so the font request could not start until that
+// stylesheet had been fetched and parsed.
 
 $primary:  #06436e !default;
 // $font-family-base:  'Source Sans Pro',  'Lato', 'Merriweather', 'Roboto Regular', 'Cabin Regular' !default;
@@ -8,6 +11,22 @@ $link-color: #1a5276; // ca225e
 $headings-font-family: 'Public Sans', sans-serif;
 
 /*-- scss:rules --*/
+// Always reserve the scrollbar's space. Short pages (the blog index) have no
+// scrollbar while long ones (About) do, and without this the viewport width
+// changes between them, sliding the right-aligned navbar sideways on every
+// navigation.
+html {
+  scrollbar-gutter: stable;
+}
+
+// Quarto ships #quarto-search empty and fills it with the search button from
+// JavaScript after load. Until then it is 0px wide, so its arrival pushed the
+// right-aligned navbar links 40px sideways on every page load. Reserve the
+// width up front so the insertion changes nothing.
+#quarto-search {
+  min-width: 40px;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Public Sans', sans-serif;
   font-weight: 400;
@@ -25,6 +44,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .navbar-nav .nav-link {
+  // Same weight as .active: a weight change would alter glyph widths and
+  // shift the whole right-aligned navbar whenever the active item changes.
   font-weight: 500;
   padding: 0.4rem 0.9rem !important;
   margin: 0 0.1rem;
@@ -41,7 +62,9 @@ h1, h2, h3, h4, h5, h6 {
 .navbar-nav .nav-link.active {
   background-color: #fff;
   color: $primary;
-  font-weight: 600;
+  // No transition: the active class can be set by script, and fading it in
+  // reads as lag. Hover on the other links still animates.
+  transition: none;
 }
 
 .listing-title {
