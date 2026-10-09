@@ -12,6 +12,12 @@ about:
     - icon: bluesky
       text: Bluesky
       href: https://bsky.app/profile/lhdjung.bsky.social
+    - icon: orcid
+      text: ORCID
+      href: https://orcid.org/0009-0007-9174-1494
+    - icon: google-scholar
+      text: Google Scholar
+      href: https://scholar.google.de/citations?user=q0aTyFAAAAAJ
     - icon: envelope
       text: Email
       href: mailto:lukas.jung@unibe.ch
