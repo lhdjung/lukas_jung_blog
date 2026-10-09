@@ -1,5 +1,6 @@
 ---
 title: "About"
+draft: true
 image: ../profile.jpg
 about:
   template: trestles

@@ -1,5 +1,6 @@
 ---
 title: "Glossary of R terms"
+draft: true
 ---
 
 -   **Infix function** (or **infix operator**). Syntactically special function with exactly two formal arguments that can be called by placing the function's name in between the two arguments.

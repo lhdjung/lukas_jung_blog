@@ -1,2 +1,16 @@
 [build]
   publish = "_site"
+
+# Netlify's default (max-age=0, must-revalidate) makes every visit re-check
+# each asset with a round trip before the page can render. Only the bootstrap
+# and syntax-highlighting CSS carry content hashes; the other files (fonts too)
+# keep their names when replaced, so they get a week, not forever.
+[[headers]]
+  for = "/site_libs/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

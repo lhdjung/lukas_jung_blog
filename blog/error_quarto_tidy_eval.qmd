@@ -1,5 +1,6 @@
 ---
 title: "Error in Quarto with tidy evaluation"
+draft: true
 ---
 
 ```{r}

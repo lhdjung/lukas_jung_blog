@@ -1,5 +1,6 @@
 ---
 title: "Programming with `dplyr::across()`, part I: Default expressions"
+draft: true
 ---
 
 This is helpful in the following situation: You are writing a function that wraps a tidyselect-using function, like `dplyr::across()`, and passes a tidyselect specification on to it. By default, however, your new function should select a set of columns that is different from the set of columns that the wrapped function would select by default.

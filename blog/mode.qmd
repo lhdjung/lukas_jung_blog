@@ -1,5 +1,6 @@
 ---
 title: "How to find the mode in R (or not)"
+draft: true
 format:
   html:
     code-fold: false
